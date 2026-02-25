@@ -1,24 +1,30 @@
 {
-  "name": "community-admin",
-  "private": true,
-  "version": "0.0.0",
-  "type": "module",
-  "scripts": {
-    "dev": "vite",
-    "build": "vue-tsc -b && vite build",
-    "preview": "vite preview"
-  },
-  "dependencies": {
-    "@tailwindcss/vite": "^4.1.18",
-    "element-plus": "^2.13.2",
-    "tailwindcss": "^4.1.18",
-    "vue": "^3.4.37"
-  },
-  "devDependencies": {
-    "@biomejs/biome": "2.3.14",
-    "@vitejs/plugin-vue": "^5.1.2",
-    "typescript": "^5.5.3",
-    "vite": "^5.4.1",
-    "vue-tsc": "^2.0.29"
-  }
+	"name": "community-admin",
+	"private": true,
+	"version": "0.0.0",
+	"type": "module",
+	"scripts": {
+		"dev": "vite",
+		"build": "vue-tsc -b && vite build",
+		"preview": "vite preview",
+		"format": "biome format --write"
+	},
+	"dependencies": {
+		"@element-plus/icons-vue": "^2.3.2",
+		"@tailwindcss/vite": "^4.1.18",
+		"axios": "^1.13.5",
+		"element-plus": "^2.13.2",
+		"pinia": "^3.0.4",
+		"tailwindcss": "^4.1.18",
+		"vue": "^3.4.37",
+		"vue-router": "^5.0.3"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "2.3.14",
+		"@types/node": "^25.3.0",
+		"@vitejs/plugin-vue": "^5.1.2",
+		"typescript": "^5.5.3",
+		"vite": "^5.4.1",
+		"vue-tsc": "^2.0.29"
+	}
 }
