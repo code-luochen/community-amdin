@@ -13,14 +13,20 @@ export interface PageResult<T = any> {
 
 // 下面可以添加业务相关的接口定义
 export interface LoginParams {
-	account: string;
+	username: string;
 	password?: string;
-	role?: string; 
+	role?: number; 
 }
 
 export interface UserInfo {
-	id: string;
-	account: string;
-	role: string;
+	id: string | number;
+	username: string;
+	role: number;
+	nickname?: string;
 	avatar?: string;
+}
+
+export interface LoginResult {
+	access_token: string;
+	user: UserInfo;
 }

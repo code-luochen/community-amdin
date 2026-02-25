@@ -1,4 +1,8 @@
-import { createRouter, createWebHistory, RouteRecordRaw } from "vue-router";
+import {
+	createRouter,
+	createWebHistory,
+	type RouteRecordRaw,
+} from "vue-router";
 import { useUserStore } from "../store/user";
 
 const routes: Array<RouteRecordRaw> = [
@@ -65,7 +69,7 @@ const router = createRouter({
 });
 
 // Global Router Guard
-router.beforeEach((to, from, next) => {
+router.beforeEach((to, _from, next) => {
 	const userStore = useUserStore();
 	const token = userStore.token || localStorage.getItem("token");
 

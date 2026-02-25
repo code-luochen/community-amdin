@@ -50,10 +50,10 @@
           class="custom-form"
           @keyup.enter="handleLogin"
         >
-          <el-form-item label="账号" prop="account">
+          <el-form-item label="账号" prop="username">
             <el-input
-              v-model="loginForm.account"
-              placeholder="示例: family_zhangsan_son"
+              v-model="loginForm.username"
+              placeholder="请输入账号"
               :prefix-icon="User"
               clearable
               size="large"
@@ -104,10 +104,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from "vue";
-import { useRouter } from "vue-router";
+import { Check, HomeFilled, Lock, User } from "@element-plus/icons-vue";
 import { ElMessage, type FormInstance, type FormRules } from "element-plus";
-import { User, Lock, HomeFilled, Check } from "@element-plus/icons-vue";
+import { reactive, ref } from "vue";
+import { useRouter } from "vue-router";
+import { login } from "../api/auth";
 import { useUserStore } from "../store/user";
 
 const router = useRouter();
@@ -116,13 +117,13 @@ const loginFormRef = ref<FormInstance>();
 const loading = ref(false);
 
 const loginForm = reactive({
-	account: "",
+	username: "",
 	password: "",
 	role: 2, // 默认选商家：2-家属
 });
 
 // 前端规则校验
-const validateAccount = (rule: any, value: string, callback: any) => {
+const validateUsername = (_rule: unknown, value: string, callback: (error?: Error) => void) => {
 	if (!value) {
 		return callback(new Error("请输入账号"));
 	}
@@ -134,55 +135,45 @@ const validateAccount = (rule: any, value: string, callback: any) => {
 };
 
 const loginRules = reactive<FormRules>({
-	account: [{ required: true, validator: validateAccount, trigger: "blur" }],
+	username: [{ required: true, validator: validateUsername, trigger: "blur" }],
 	password: [{ required: true, message: "请输入密码", trigger: "blur" }],
 	role: [{ required: true, message: "请选择登录身份", trigger: "change" }],
 });
 
-// 模拟生成与身份匹配的临时测试 Token (仅前端联调用，后端开发后替换为真实接口)
-const generateMockToken = (role: number) => {
-	const header = btoa(JSON.stringify({ alg: "HS256", typ: "JWT" }));
-	const payload = btoa(
-		JSON.stringify({
-			id: 1,
-			account: loginForm.account,
-			role: role,
-			exp: Math.floor(Date.now() / 1000) + 60 * 60 * 2, // 2小时过期时间
-		}),
-	);
-	const signature = btoa("mock_signature");
-	return `${header}.${payload}.${signature}`;
-};
-
 const handleLogin = async () => {
 	if (!loginFormRef.value) return;
 
-	await loginFormRef.value.validate((valid) => {
+	await loginFormRef.value.validate(async (valid) => {
 		if (valid) {
 			loading.value = true;
 			try {
-				// 模拟调用 API 登录方法
-				setTimeout(() => {
-					// 这里之后应替换为您真实的 API 请求
-					const mockToken = generateMockToken(loginForm.role);
+				const res = (await login({
+					username: loginForm.username,
+					password: loginForm.password,
+					role: loginForm.role,
+				})) as any;
 
-					userStore.setToken(mockToken);
-					ElMessage.success("登录成功");
+				if (res && res.access_token) {
+					userStore.setLoginData(res.access_token, res.user);
+				} else {
+					throw new Error("无效的响应格式");
+				}
+				
+				ElMessage.success("登录成功");
 
-					switch (loginForm.role) {
-						case 2:
-							router.push("/family/dashboard");
-							break;
-						case 3:
-							router.push("/merchant/dashboard");
-							break;
-						case 4:
-							router.push("/admin/dashboard");
-							break;
-					}
-				}, 600);
+				switch (loginForm.role) {
+					case 2:
+						router.push("/family/dashboard");
+						break;
+					case 3:
+						router.push("/merchant/dashboard");
+						break;
+					case 4:
+						router.push("/admin/dashboard");
+						break;
+				}
 			} catch (error) {
-				ElMessage.error("登录失败，请检查您的网络连接或后端服务");
+				console.error("Login failed:", error);
 			} finally {
 				loading.value = false;
 			}

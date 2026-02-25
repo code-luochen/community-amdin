@@ -1,47 +1,19 @@
 import { defineStore } from "pinia";
 import { ref } from "vue";
-
-// Helper to decode JWT payload safely
-function decodeJwt(token: string) {
-	try {
-		const base64Url = token.split(".")[1];
-		const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
-		const jsonPayload = decodeURIComponent(
-			atob(base64)
-				.split("")
-				.map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
-				.join(""),
-		);
-		return JSON.parse(jsonPayload);
-	} catch (error) {
-		return null;
-	}
-}
+import type { UserInfo } from "../api/types";
 
 export const useUserStore = defineStore("user", () => {
 	const token = ref<string>(localStorage.getItem("token") || "");
-	const userInfo = ref<any>(null);
-	const role = ref<number | null>(null);
+	const userInfo = ref<UserInfo | null>(JSON.parse(localStorage.getItem("userInfo") || "null"));
+	const role = ref<number | null>(userInfo.value?.role || null);
 
-	// Initialize role if token exists
-	if (token.value) {
-		const payload = decodeJwt(token.value);
-		if (payload) {
-			role.value = payload.role;
-			userInfo.value = payload;
-		}
-	}
-
-	const setToken = (newToken: string) => {
+	const setLoginData = (newToken: string, user: UserInfo) => {
 		token.value = newToken;
+		userInfo.value = user;
+		role.value = user.role;
+		
 		localStorage.setItem("token", newToken);
-
-		// Parse role
-		const payload = decodeJwt(newToken);
-		if (payload) {
-			role.value = payload.role;
-			userInfo.value = payload;
-		}
+		localStorage.setItem("userInfo", JSON.stringify(user));
 	};
 
 	const clearToken = () => {
@@ -49,13 +21,14 @@ export const useUserStore = defineStore("user", () => {
 		role.value = null;
 		userInfo.value = null;
 		localStorage.removeItem("token");
+		localStorage.removeItem("userInfo");
 	};
 
 	return {
 		token,
 		userInfo,
 		role,
-		setToken,
+		setLoginData,
 		clearToken,
 	};
 });
