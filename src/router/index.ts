@@ -19,7 +19,7 @@ const routes: Array<RouteRecordRaw> = [
 	{
 		path: "/family",
 		name: "Family",
-		component: () => import("../layout/FamilyLayout.vue"),
+		component: () => import("../layout/index.vue"),
 		meta: { role: 2 },
 		children: [
 			{
@@ -32,7 +32,7 @@ const routes: Array<RouteRecordRaw> = [
 	{
 		path: "/merchant",
 		name: "Merchant",
-		component: () => import("../layout/MerchantLayout.vue"),
+		component: () => import("../layout/index.vue"),
 		meta: { role: 3 },
 		children: [
 			{
@@ -45,7 +45,7 @@ const routes: Array<RouteRecordRaw> = [
 	{
 		path: "/admin",
 		name: "Admin",
-		component: () => import("../layout/AdminLayout.vue"),
+		component: () => import("../layout/index.vue"),
 		meta: { role: 4 },
 		children: [
 			{

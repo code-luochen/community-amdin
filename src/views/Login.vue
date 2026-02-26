@@ -123,7 +123,11 @@ const loginForm = reactive({
 });
 
 // 前端规则校验
-const validateUsername = (_rule: unknown, value: string, callback: (error?: Error) => void) => {
+const validateUsername = (
+	_rule: unknown,
+	value: string,
+	callback: (error?: Error) => void,
+) => {
 	if (!value) {
 		return callback(new Error("请输入账号"));
 	}
@@ -158,7 +162,7 @@ const handleLogin = async () => {
 				} else {
 					throw new Error("无效的响应格式");
 				}
-				
+
 				ElMessage.success("登录成功");
 
 				switch (loginForm.role) {

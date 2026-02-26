@@ -18,7 +18,7 @@ export function login(data: LoginParams) {
  */
 export function getUserInfo() {
 	return request<UserInfo>({
-		url: "/user/info",
+		url: "/auth/profile",
 		method: "get",
 	});
 }
