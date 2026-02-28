@@ -35,12 +35,12 @@ const routes: Array<RouteRecordRaw> = [
 			// 	component: () => import("@views/family/Health.vue"),
 			// 	meta: { title: "健康监控", role: 2 },
 			// },
-			// {
-			// 	path: "order",
-			// 	name: "FamilyOrder",
-			// 	component: () => import("@views/family/Order.vue"),
-			// 	meta: { title: "订单监督", role: 2 },
-			// },
+			{
+				path: "order",
+				name: "FamilyOrder",
+				component: () => import("../views/family/Order.vue"),
+				meta: { title: "订单监督", role: 2 },
+			},
 		],
 	},
 	// ================= 角色 3: 商户端路由 =================
@@ -56,12 +56,12 @@ const routes: Array<RouteRecordRaw> = [
 				name: "MerchantDashboard",
 				component: () => import("../views/merchant/Dashboard.vue"),
 			},
-			// {
-			// 	path: "order",
-			// 	name: "MerchantOrder",
-			// 	component: () => import("@views/merchant/Order.vue"),
-			// 	meta: { title: "订单处理", role: 3 },
-			// },
+			{
+				path: "order",
+				name: "MerchantOrder",
+				component: () => import("../views/merchant/Order.vue"),
+				meta: { title: "订单处理", role: 3 },
+			},
 			// {
 			// 	path: 'service',
 			// 	name: 'MerchantService',
@@ -95,12 +95,12 @@ const routes: Array<RouteRecordRaw> = [
 			// 	component: () => import('@views/admin/service-audit.vue'),
 			// 	meta: { title: '服务审核', role: 4 }
 			// },
-			// {
-			// 	path: 'order-monitor',
-			// 	name: 'AdminOrderMonitor',
-			// 	component: () => import('@views/admin/order-monitor.vue'),
-			// 	meta: { title: '订单监控', role: 4 }
-			// },
+			{
+				path: 'order-monitor',
+				name: 'AdminOrderMonitor',
+				component: () => import('../views/admin/order-monitor.vue'),
+				meta: { title: '订单监控', role: 4 }
+			},
 			// {
 			// 	path: 'health-alert',
 			// 	name: 'AdminHealthAlert',
