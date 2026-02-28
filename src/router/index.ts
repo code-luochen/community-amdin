@@ -83,12 +83,12 @@ const routes: Array<RouteRecordRaw> = [
 				name: "AdminDashboard",
 				component: () => import("../views/admin/Dashboard.vue"),
 			},
-			// {
-			// 	path: 'user',
-			// 	name: 'AdminUser',
-			// 	component: () => import('@views/admin/user.vue'),
-			// 	meta: { title: '用户管理', role: 4 }
-			// },
+			{
+				path: 'user',
+				name: 'AdminUser',
+				component: () => import('../views/users/UserManagement.vue'),
+				meta: { title: '用户管理', role: 4 }
+			},
 			// {
 			// 	path: 'service-audit',
 			// 	name: 'AdminServiceAudit',
