@@ -139,7 +139,7 @@
         </div>
 
         <!-- Pagination -->
-        <div class="pagination-wrapper mt-6 pb-2">
+        <div class="pagination-wrapper mt-6! pb-2!">
           <el-pagination
             v-model:current-page="pagination.page"
             v-model:page-size="pagination.limit"
