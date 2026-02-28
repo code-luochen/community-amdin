@@ -21,18 +21,25 @@ service.interceptors.request.use(
 service.interceptors.response.use(
 	(response) => {
 		const { code, data, message } = response.data;
-		if (code === 200) return data;
+		if (code === 200 || !code) return data || response.data;
 
-		ElMessage.error(message || "系统错误");
-		if (code === 401) {
+		if (code === 401 || code === 403) {
 			const userStore = useUserStore();
-			userStore.clearToken(); // 触发登出逻辑
+			userStore.clearToken();
 			window.location.href = "/login";
 		}
+		ElMessage.error(message || "系统错误");
 		return Promise.reject(new Error(message || "Error"));
 	},
 	(error) => {
-		ElMessage.error(error.message || "网络连接异常");
+		if (error.response && (error.response.status === 401 || error.response.status === 403)) {
+			const userStore = useUserStore();
+			userStore.clearToken();
+			window.location.href = "/login";
+			ElMessage.error(error.response.data?.message || "无权限或登录已过期");
+		} else {
+			ElMessage.error(error.message || "网络连接异常");
+		}
 		return Promise.reject(error);
 	},
 );
