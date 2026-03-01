@@ -62,12 +62,12 @@ const routes: Array<RouteRecordRaw> = [
 				component: () => import("../views/merchant/Order.vue"),
 				meta: { title: "订单处理", role: 3 },
 			},
-			// {
-			// 	path: 'service',
-			// 	name: 'MerchantService',
-			// 	component: () => import('@views/merchant/service.vue'),
-			// 	meta: { title: '服务管理', role: 3 }
-			// }
+			{
+				path: 'service',
+				name: 'MerchantService',
+				component: () => import('../views/merchant/service.vue'),
+				meta: { title: '服务管理', role: 3 }
+			}
 		],
 	},
 	// ================= 角色 4: 管理员端路由 =================
@@ -89,12 +89,12 @@ const routes: Array<RouteRecordRaw> = [
 				component: () => import('../views/users/UserManagement.vue'),
 				meta: { title: '用户管理', role: 4 }
 			},
-			// {
-			// 	path: 'service-audit',
-			// 	name: 'AdminServiceAudit',
-			// 	component: () => import('@views/admin/service-audit.vue'),
-			// 	meta: { title: '服务审核', role: 4 }
-			// },
+			{
+				path: 'service-audit',
+				name: 'AdminServiceAudit',
+				component: () => import('../views/admin/service-audit.vue'),
+				meta: { title: '服务审核', role: 4 }
+			},
 			{
 				path: 'order-monitor',
 				name: 'AdminOrderMonitor',
