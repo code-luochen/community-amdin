@@ -29,12 +29,12 @@ const routes: Array<RouteRecordRaw> = [
 				name: "FamilyDashboard",
 				component: () => import("@views/family/Dashboard.vue"),
 			},
-			// {
-			// 	path: "health",
-			// 	name: "FamilyHealth",
-			// 	component: () => import("@views/family/Health.vue"),
-			// 	meta: { title: "健康监控", role: 2 },
-			// },
+			{
+				path: "health",
+				name: "FamilyHealth",
+				component: () => import("../views/family/Health.vue"),
+				meta: { title: "健康监控", role: 2 },
+			},
 			{
 				path: "order",
 				name: "FamilyOrder",
@@ -101,12 +101,12 @@ const routes: Array<RouteRecordRaw> = [
 				component: () => import('../views/admin/order-monitor.vue'),
 				meta: { title: '订单监控', role: 4 }
 			},
-			// {
-			// 	path: 'health-alert',
-			// 	name: 'AdminHealthAlert',
-			// 	component: () => import('@views/admin/health-alert.vue'),
-			// 	meta: { title: '健康预警', role: 4 }
-			// },
+			{
+				path: 'health-alert',
+				name: 'AdminHealthAlert',
+				component: () => import('../views/admin/health-alert.vue'),
+				meta: { title: '健康预警', role: 4 }
+			},
 			// {
 			// 	path: 'emergency',
 			// 	name: 'AdminEmergency',
