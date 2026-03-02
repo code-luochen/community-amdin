@@ -32,6 +32,11 @@
           <span class="greeting">欢迎回来，{{ userStore.userInfo?.nickname || userStore.userInfo?.username }}</span>
         </div>
         <div class="header-right">
+          <div class="notification-icon-wrapper" @click="goToNotifications">
+            <el-badge :value="unreadCount" :hidden="unreadCount === 0" :max="99" class="notification-badge">
+              <el-icon :size="20" class="bell-icon"><Bell /></el-icon>
+            </el-badge>
+          </div>
           <el-dropdown @command="handleCommand" trigger="click">
             <span class="user-dropdown">
               <el-avatar :size="32" :src="userStore.userInfo?.avatar || 'https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png'" />
@@ -61,12 +66,13 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref, onMounted, onUnmounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { ArrowDown, HomeFilled } from '@element-plus/icons-vue';
-import { ElMessage, ElMessageBox } from 'element-plus';
+import { ArrowDown, HomeFilled, Bell } from '@element-plus/icons-vue';
+import { ElMessage, ElMessageBox, ElNotification } from 'element-plus';
 import { useUserStore } from '../store/user';
 import { roleMenus } from './menuConfig';
+import { fetchUnreadCount } from '@/api/notification';
 
 const route = useRoute();
 const router = useRouter();
@@ -102,6 +108,50 @@ const roleTitle = computed(() => {
 });
 
 const activePath = computed(() => route.path);
+
+const unreadCount = ref(0);
+let pollingTimer: any = null;
+
+const loadUnreadCount = async () => {
+  if (!userStore.token) return;
+  try {
+    const res: any = await fetchUnreadCount();
+    const newCount = res?.data ?? res ?? 0;
+    
+    // 如果未读数增加了，说明有新消息，弹出提示
+    if (newCount > unreadCount.value) {
+      ElNotification({
+        title: '新消息提醒',
+        message: `您有 ${newCount - unreadCount.value} 条新的未读通知`,
+        type: 'info',
+        position: 'bottom-right',
+        duration: 5000,
+        onClick: () => goToNotifications()
+      });
+    }
+    
+    unreadCount.value = newCount;
+  } catch (error) {
+    console.warn('Failed to fetch unread count');
+  }
+};
+
+const goToNotifications = () => {
+  if (currentRole.value === 2) router.push('/family/notifications');
+  else if (currentRole.value === 3) router.push('/merchant/notifications');
+  else if (currentRole.value === 4) router.push('/admin/notifications');
+};
+
+onMounted(() => {
+  loadUnreadCount();
+  pollingTimer = setInterval(loadUnreadCount, 30000); // 30s poll
+  window.addEventListener('unread-count-changed', loadUnreadCount);
+});
+
+onUnmounted(() => {
+  if (pollingTimer) clearInterval(pollingTimer);
+  window.removeEventListener('unread-count-changed', loadUnreadCount);
+});
 
 const handleCommand = async (command: string) => {
   if (command === 'logout') {
@@ -246,6 +296,33 @@ const handleCommand = async (command: string) => {
   font-size: 15px;
   font-weight: 500;
   color: var(--el-text-color-regular);
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.notification-icon-wrapper {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  transition: all 0.2s;
+  color: var(--el-text-color-regular);
+}
+
+.notification-icon-wrapper:hover {
+  background-color: var(--el-fill-color-light);
+  color: var(--el-color-primary);
+}
+
+.bell-icon {
+  margin-top: 2px;
 }
 
 .user-dropdown {

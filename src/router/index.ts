@@ -41,6 +41,12 @@ const routes: Array<RouteRecordRaw> = [
 				component: () => import("../views/family/Order.vue"),
 				meta: { title: "订单监督", role: 2 },
 			},
+			{
+				path: "notifications",
+				name: "FamilyNotifications",
+				component: () => import("../views/notifications/index.vue"),
+				meta: { title: "通知中心", role: 2 },
+			},
 		],
 	},
 	// ================= 角色 3: 商户端路由 =================
@@ -67,6 +73,12 @@ const routes: Array<RouteRecordRaw> = [
 				name: 'MerchantService',
 				component: () => import('../views/merchant/service.vue'),
 				meta: { title: '服务管理', role: 3 }
+			},
+			{
+				path: "notifications",
+				name: "MerchantNotifications",
+				component: () => import("../views/notifications/index.vue"),
+				meta: { title: "通知中心", role: 3 },
 			}
 		],
 	},
@@ -112,6 +124,12 @@ const routes: Array<RouteRecordRaw> = [
 				name: 'AdminEmergency',
 				component: () => import('../views/admin/emergency.vue'),
 				meta: { title: '求助处理', role: 4 }
+			},
+			{
+				path: "notifications",
+				name: "AdminNotifications",
+				component: () => import("../views/notifications/index.vue"),
+				meta: { title: "通知中心", role: 4 },
 			}
 		],
 	},
