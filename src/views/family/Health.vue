@@ -19,7 +19,7 @@
                   v-model="query.elderlyId" 
                   placeholder="选择老人" 
                   @change="handleElderChange"
-                  class="custom-select w-full sm:w-48"
+                  class="custom-select w-full sm:w-48!"
                 >
                   <el-option
                     v-for="elder in elders"
@@ -189,13 +189,10 @@ const query = ref({
 const loadElders = async () => {
   try {
     const res = await fetchUsers({ role: 1, limit: 100 });
-    // axios interceptor generally returns the data payload directly, so res might be { data, total } or an array
-    if (res && (res as any).data) {
-      elders.value = (res as any).data;
-    } else if (Array.isArray(res)) {
-       elders.value = res;
-    } else if (res && (res as any).items) {
-       elders.value = (res as any).items;
+    if (res && (res as any).items) {
+      elders.value = (res as any).items;
+    } else {
+      elders.value = [];
     }
   } catch (err) {
     ElMessage.error('获取关联老人列表失败');
@@ -206,14 +203,13 @@ const loadRecords = async () => {
   loading.value = true;
   try {
     const res = await fetchHealthRecords(query.value);
-    if (res && res.data) {
-      records.value = res.data;
-      total.value = res.total;
+
+    if (res && (res as any).items) {
+      records.value = (res as any).items;
+      total.value = (res as any).total;
     } else {
-      // @ts-ignore
-      records.value = res.data || res.list || [];
-      // @ts-ignore
-      total.value = res.total || 0;
+      records.value = [];
+      total.value = 0;
     }
   } catch (err) {
     ElMessage.error('获取健康数据失败');
