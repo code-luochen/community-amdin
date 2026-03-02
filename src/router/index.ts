@@ -107,12 +107,12 @@ const routes: Array<RouteRecordRaw> = [
 				component: () => import('../views/admin/health-alert.vue'),
 				meta: { title: '健康预警', role: 4 }
 			},
-			// {
-			// 	path: 'emergency',
-			// 	name: 'AdminEmergency',
-			// 	component: () => import('@views/admin/emergency.vue'),
-			// 	meta: { title: '求助处理', role: 4 }
-			// }
+			{
+				path: 'emergency',
+				name: 'AdminEmergency',
+				component: () => import('../views/admin/emergency.vue'),
+				meta: { title: '求助处理', role: 4 }
+			}
 		],
 	},
 	// Catch-all route for 404
