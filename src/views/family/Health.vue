@@ -12,22 +12,24 @@
             </h1>
             <p class="page-subtitle">多维度掌握老人的实时健康状况和历史数据</p>
           </div>
-          <div class="flex items-center gap-3">
-             <div class="text-sm font-medium text-slate-500 mr-2">关联老人:</div>
-             <el-select 
-                v-model="query.elderlyId" 
-                placeholder="选择关联的老人" 
-                @change="handleElderChange"
-                class="custom-select w-48"
-              >
-                <el-option
-                  v-for="elder in elders"
-                  :key="elder.id"
-                  :label="elder.nickname || elder.username"
-                  :value="elder.id"
-                />
-              </el-select>
-            <button class="premium-btn primary-solid px-6 h-10 shadow-none border-none rounded-xl" @click="loadRecords">
+          <div class="flex flex-wrap items-center gap-3 w-full sm:w-auto mt-2 sm:mt-0">
+             <div class="flex items-center flex-1 sm:flex-initial">
+               <div class="text-sm font-medium text-slate-500 whitespace-nowrap mr-2">关联老人:</div>
+               <el-select 
+                  v-model="query.elderlyId" 
+                  placeholder="选择老人" 
+                  @change="handleElderChange"
+                  class="custom-select w-full sm:w-48"
+                >
+                  <el-option
+                    v-for="elder in elders"
+                    :key="elder.id"
+                    :label="elder.nickname || elder.username"
+                    :value="elder.id"
+                  />
+                </el-select>
+             </div>
+            <button class="premium-btn primary-solid px-6 h-10 shadow-none border-none rounded-xl whitespace-nowrap shrink-0" @click="loadRecords">
               刷新数据
             </button>
           </div>
