@@ -28,6 +28,7 @@ const routes: Array<RouteRecordRaw> = [
 				path: "dashboard",
 				name: "FamilyDashboard",
 				component: () => import("@views/family/Dashboard.vue"),
+				meta: { title: "家属首页", role: 2 },
 			},
 			{
 				path: "health",
@@ -61,6 +62,7 @@ const routes: Array<RouteRecordRaw> = [
 				path: "dashboard",
 				name: "MerchantDashboard",
 				component: () => import("../views/merchant/Dashboard.vue"),
+				meta: { title: "商户首页", role: 3 },
 			},
 			{
 				path: "order",
@@ -94,6 +96,7 @@ const routes: Array<RouteRecordRaw> = [
 				path: "dashboard",
 				name: "AdminDashboard",
 				component: () => import("../views/admin/Dashboard.vue"),
+				meta: { title: "管理员首页", role: 4 },
 			},
 			{
 				path: 'user',
