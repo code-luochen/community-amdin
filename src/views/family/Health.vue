@@ -13,23 +13,24 @@
             <p class="page-subtitle">多维度掌握老人的实时健康状况和历史数据</p>
           </div>
           <div class="flex flex-wrap items-center gap-3 w-full sm:w-auto mt-2 sm:mt-0">
-             <div class="flex items-center flex-1 sm:flex-initial">
-               <div class="text-sm font-medium text-slate-500 whitespace-nowrap mr-2">关联老人:</div>
-               <el-select 
-                  v-model="query.elderlyId" 
-                  placeholder="选择老人" 
-                  @change="handleElderChange"
-                  class="custom-select w-full sm:w-48!"
-                >
-                  <el-option
-                    v-for="elder in elders"
-                    :key="elder.id"
-                    :label="elder.nickname || elder.username"
-                    :value="elder.id"
-                  />
-                </el-select>
-             </div>
-            <button class="premium-btn primary-solid px-6 h-10 shadow-none border-none rounded-xl whitespace-nowrap shrink-0" @click="loadRecords">
+            <div v-if="elders.length > 0" class="flex items-center flex-1 sm:flex-initial">
+              <div class="text-sm font-medium text-slate-500 whitespace-nowrap mr-2">切换老人:</div>
+              <el-select 
+                v-model="query.elderlyId" 
+                placeholder="选择老人" 
+                @change="handleElderChange"
+                class="custom-select w-full sm:w-52!"
+              >
+                <el-option
+                  v-for="elder in elders"
+                  :key="elder.id"
+                  :label="elder.label"
+                  :value="elder.id"
+                />
+              </el-select>
+            </div>
+            <div v-else class="text-sm text-slate-400 italic">暂未绑定任何老人</div>
+            <button class="premium-btn primary-solid px-6 h-10 shadow-none border-none rounded-xl whitespace-nowrap shrink-0" @click="loadRecords" :disabled="!query.elderlyId">
               刷新数据
             </button>
           </div>
@@ -171,13 +172,13 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import { fetchHealthRecords, HealthRecord } from '@/api/health-record';
-import { fetchUsers, type User } from '@/api/users';
+import { getMyElderlyList, type ElderlyBindingInfo } from '@/api/family-binding';
 import { ElMessage } from 'element-plus';
 import { Clock } from '@element-plus/icons-vue';
 
 const loading = ref(false);
 const records = ref<HealthRecord[]>([]);
-const elders = ref<User[]>([]);
+const elders = ref<{ id: number; label: string; nickname: string; username: string; relation: string }[]>([]);
 const total = ref(0);
 const query = ref({
   page: 1,
@@ -185,21 +186,34 @@ const query = ref({
   elderlyId: undefined as number | undefined
 });
 
-// 获取老人列表（模拟关联的老人）
+// 从绑定关系获取老人列表，确保解绑后老人不再出现在选择器中
 const loadElders = async () => {
   try {
-    const res = await fetchUsers({ role: 1, limit: 100 });
-    if (res && (res as any).items) {
-      elders.value = (res as any).items;
-    } else {
-      elders.value = [];
-    }
+    const res: any = await getMyElderlyList();
+    // res 可能是数组本身，也可能包含在 data 字段中
+    const bindingArr = Array.isArray(res) ? res : (res?.data || res || []);
+    elders.value = (bindingArr as ElderlyBindingInfo[])
+      .filter((b: ElderlyBindingInfo) => b.elderly)
+      .map((b: ElderlyBindingInfo) => ({
+        id: b.elderly.id,
+        label: b.elderly.realName || b.elderly.nickname || b.elderly.username,
+        nickname: b.elderly.nickname || b.elderly.username,
+        username: b.elderly.username,
+        relation: b.relation,
+      }));
   } catch (err) {
     ElMessage.error('获取关联老人列表失败');
   }
 };
 
 const loadRecords = async () => {
+  // 若没有绑定老人，直接清空数据
+  if (!query.value.elderlyId) {
+    records.value = [];
+    total.value = 0;
+    return;
+  }
+
   loading.value = true;
   try {
     const res = await fetchHealthRecords(query.value);
@@ -238,8 +252,8 @@ onMounted(async () => {
   await loadElders();
   if (elders.value.length > 0) {
     query.value.elderlyId = elders.value[0].id;
+    loadRecords();
   }
-  loadRecords();
 });
 </script>
 

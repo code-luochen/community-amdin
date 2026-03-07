@@ -15,6 +15,8 @@ export interface NotificationQuery {
   page?: number;
   limit?: number;
   isRead?: string | number | boolean;
+  elderlyId?: number;
+  type?: string;
 }
 
 export const fetchNotifications = (params?: NotificationQuery) => {

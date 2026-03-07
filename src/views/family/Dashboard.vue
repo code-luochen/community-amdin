@@ -5,12 +5,30 @@
       <div class="premium-header relative overflow-hidden mb-6!">
         <div class="bg-shape shape-1"></div>
         <div class="bg-shape shape-2"></div>
-        <div class="header-content relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+        <div class="header-content relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-5">
           <div class="header-text">
             <h1 class="page-title">家属协通中心</h1>
-            <p class="page-subtitle">实时掌握 {{ stats?.elderly?.nickname || '家人' }} 的健康状况与服务需求</p>
+            <p class="page-subtitle">实时掌握 {{ stats?.elderly?.nickname || stats?.elderly?.realName || '家人' }} 的健康状况与服务需求</p>
           </div>
-          <div class="header-actions">
+          <div class="flex items-center gap-3 flex-wrap justify-end">
+            <!-- 绑定老人切换 -->
+            <div v-if="elders.length > 0" class="elder-switcher flex items-center gap-2">
+              <span class="text-sm font-medium text-slate-500 whitespace-nowrap">切换老人:</span>
+              <el-select
+                v-model="selectedElderlyId"
+                class="elder-select"
+                style="width: 160px"
+                @change="handleElderChange"
+                :loading="loading"
+              >
+                <el-option
+                  v-for="elder in elders"
+                  :key="elder.id"
+                  :label="elder.nickname || elder.username"
+                  :value="elder.id"
+                />
+              </el-select>
+            </div>
             <div class="current-date-badge shadow-sm">
               <el-icon class="mr-2 text-primary"><Calendar /></el-icon>
               <span>{{ currentDate }}</span>
@@ -165,6 +183,7 @@ import { LineChart as ELineChart } from "echarts/charts";
 import { TooltipComponent, GridComponent, LegendComponent } from "echarts/components";
 import VChart, { THEME_KEY } from "vue-echarts";
 import { fetchFamilyStats } from '@/api/statistics';
+import { getMyElderlyList, type ElderlyBindingInfo } from '@/api/family-binding';
 import { ElMessage } from 'element-plus';
 
 use([CanvasRenderer, ELineChart, TooltipComponent, GridComponent, LegendComponent]);
@@ -172,6 +191,8 @@ provide(THEME_KEY, "light");
 
 const stats = ref<any>(null);
 const loading = ref(true);
+const elders = ref<{ id: number; nickname: string; username: string }[]>([]);
+const selectedElderlyId = ref<number | undefined>(undefined);
 
 const hasHealthData = computed(() => {
   return stats.value?.healthHistory?.length > 0;
@@ -258,10 +279,31 @@ const getStatusClass = (status: number) => {
   return map[status] || '';
 };
 
+// 加载已绑定老人列表
+const loadElders = async () => {
+  try {
+    const res: any = await getMyElderlyList();
+    const bindings: ElderlyBindingInfo[] = Array.isArray(res) ? res : (res?.data || res || []);
+    elders.value = (bindings as ElderlyBindingInfo[])
+      .filter((b: ElderlyBindingInfo) => b.elderly)
+      .map((b: ElderlyBindingInfo) => ({
+        id: b.elderly.id,
+        nickname: b.elderly.realName || b.elderly.nickname || b.elderly.username,
+        username: b.elderly.username,
+      }));
+    // 默认选中第一个
+    if (elders.value.length > 0) {
+      selectedElderlyId.value = elders.value[0].id;
+    }
+  } catch (err) {
+    elders.value = [];
+  }
+};
+
 const initData = async () => {
   loading.value = true;
   try {
-    const res = await fetchFamilyStats();
+    const res = await fetchFamilyStats(selectedElderlyId.value);
     stats.value = res;
   } catch (error) {
     ElMessage.error('无法获取关联家人数据，请确认账号关联关系');
@@ -270,7 +312,15 @@ const initData = async () => {
   }
 };
 
-onMounted(initData);
+// 切换老人时重新加载数据
+const handleElderChange = () => {
+  initData();
+};
+
+onMounted(async () => {
+  await loadElders();
+  initData();
+});
 </script>
 
 <style scoped>
@@ -300,6 +350,21 @@ onMounted(initData);
   background: rgba(248, 250, 252, 0.8); padding: 0.75rem 1.5rem;
   border-radius: 1rem; color: #475569; font-weight: 600; font-size: 0.95rem;
   display: flex; align-items: center; border: 1px solid #f1f5f9;
+}
+
+.elder-switcher {
+  background: rgba(248, 250, 252, 0.9);
+  padding: 0.5rem 1rem;
+  border-radius: 1rem;
+  border: 1px solid #f1f5f9;
+}
+
+::v-deep(.elder-select .el-select__wrapper) {
+  border-radius: 0.75rem;
+  box-shadow: 0 0 0 1px #e2e8f0 inset !important;
+  background-color: #ffffff;
+  font-size: 0.875rem;
+  height: 36px;
 }
 
 .stat-card.health {

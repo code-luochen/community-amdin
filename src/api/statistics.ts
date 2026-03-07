@@ -21,12 +21,13 @@ export function fetchMerchantStats() {
 }
 
 /**
- * 获取家属首页统计信息
+ * 获取家属首页统计信息，支持按老人 ID 切换
  */
-export function fetchFamilyStats() {
+export function fetchFamilyStats(elderlyId?: number) {
   return request({
     url: '/statistics/family',
     method: 'get',
+    params: elderlyId ? { elderlyId } : undefined,
   });
 }
 

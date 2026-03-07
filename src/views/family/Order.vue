@@ -21,6 +21,16 @@
         <div class="search-toolbar">
           <el-form :model="queryParams" inline class="premium-form">
             <el-form-item>
+              <el-select v-model="queryParams.elderlyId" placeholder="选择老人" clearable class="custom-select w-48!">
+                <el-option
+                  v-for="elder in elders"
+                  :key="elder.id"
+                  :label="elder.label"
+                  :value="elder.id"
+                />
+              </el-select>
+            </el-form-item>
+            <el-form-item>
               <el-select v-model="queryParams.status" placeholder="全选状态" clearable class="custom-select w-40!">
                 <el-option label="待接单" :value="0" />
                 <el-option label="已接单" :value="1" />
@@ -107,23 +117,74 @@ import { ref, reactive, onMounted } from 'vue';
 import { Clock } from '@element-plus/icons-vue';
 import { ElMessage } from 'element-plus';
 import { getOrderList } from '../../api/order';
+import { getMyElderlyList, type ElderlyBindingInfo } from '../../api/family-binding';
 
 const loading = ref(false);
 const tableData = ref<any[]>([]);
 const total = ref(0);
-
 const queryParams = reactive({
   page: 1,
   limit: 10,
   status: undefined as number | undefined,
+  elderlyId: undefined as number | undefined,
 });
 
+// 老人列表
+const elders = ref<{ id: number; label: string }[]>([]);
+// 已绑定的老人 ID 列表
+const boundElderlyIds = ref<number[]>([]);
+
+// 加载绑定的老人列表
+const loadElders = async () => {
+  try {
+    const res: any = await getMyElderlyList();
+    const bindings: ElderlyBindingInfo[] = Array.isArray(res) ? res : (res?.data || res || []);
+    elders.value = bindings
+      .filter(b => b.elderly)
+      .map(b => ({
+        id: b.elderly.id,
+        label: b.elderly.realName || b.elderly.nickname || b.elderly.username
+      }));
+    boundElderlyIds.value = elders.value.map(e => e.id);
+  } catch (err) {
+    elders.value = [];
+    boundElderlyIds.value = [];
+  }
+};
+
 const fetchOrders = async () => {
+  // 若没有绑定任何老人，直接清空，不请求接口
+  if (boundElderlyIds.value.length === 0) {
+    tableData.value = [];
+    total.value = 0;
+    return;
+  }
+
   loading.value = true;
   try {
-    const res = await getOrderList(queryParams);
-    tableData.value = res.items || [];
-    total.value = res.total || 0;
+    const itemsToFetch = queryParams.elderlyId 
+      ? [queryParams.elderlyId] 
+      : boundElderlyIds.value;
+
+    const allItems: any[] = [];
+    let allTotal = 0;
+
+    for (const elderlyId of itemsToFetch) {
+      const res = await getOrderList({
+        ...queryParams,
+        elderlyId: String(elderlyId),
+      });
+      allItems.push(...(res.items || []));
+      allTotal += res.total || 0;
+    }
+
+    // 按创建时间降序排列
+    allItems.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+    // 分页处理
+    const start = (queryParams.page - 1) * queryParams.limit;
+    tableData.value = allItems.slice(start, start + queryParams.limit);
+    total.value = allTotal;
   } catch (error) {
     ElMessage.error('获取订单列表失败');
   } finally {
@@ -138,6 +199,7 @@ const handleSearch = () => {
 
 const resetSearch = () => {
   queryParams.status = undefined;
+  queryParams.elderlyId = undefined;
   handleSearch();
 };
 
@@ -168,7 +230,8 @@ const formatDate = (val: string) => {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
 };
 
-onMounted(() => {
+onMounted(async () => {
+  await loadElders();
   fetchOrders();
 });
 </script>

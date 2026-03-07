@@ -21,13 +21,44 @@
       <div class="content-card shadow-soft">
         <!-- List Header -->
         <div class="list-header flex items-center justify-between mb-4 pb-4 border-b border-dashed border-slate-200">
-          <div class="flex items-center gap-4">
-            <div class="text-slate-700 font-semibold">消息列表</div>
+          <div class="flex items-center gap-3 flex-wrap">
+            <div class="text-slate-700 font-semibold whitespace-nowrap">消息列表</div>
             <el-radio-group v-model="filterStatus" size="small" @change="handleFilterChange">
               <el-radio-button label="all">全部</el-radio-button>
               <el-radio-button label="unread">未读</el-radio-button>
               <el-radio-button label="read">已读</el-radio-button>
             </el-radio-group>
+            <!-- 按老人筛选 -->
+            <el-select
+              v-if="elders.length > 0"
+              v-model="selectedElderlyId"
+              placeholder="全部老人"
+              clearable
+              size="small"
+              style="width: 140px"
+              @change="handleFilterChange"
+            >
+              <el-option
+                v-for="elder in elders"
+                :key="elder.id"
+                :label="elder.label"
+                :value="elder.id"
+              />
+            </el-select>
+            <!-- 按类型筛选 -->
+            <el-select
+              v-model="filterType"
+              placeholder="消息类型"
+              clearable
+              size="small"
+              style="width: 140px"
+              @change="handleFilterChange"
+            >
+              <el-option label="订单通知" value="order" />
+              <el-option label="健康预警" value="health" />
+              <el-option label="紧急求助" value="emergency" />
+              <el-option label="系统通知" value="system" />
+            </el-select>
           </div>
           <div class="text-sm text-slate-500">共 {{ pagination.total }} 条通知</div>
         </div>
@@ -88,11 +119,15 @@ import { ref, reactive, onMounted, computed } from 'vue';
 import { Check, Bell, WarningFilled, ShoppingCart, InfoFilled } from '@element-plus/icons-vue';
 import { ElMessage } from 'element-plus';
 import { fetchNotifications, markAsRead, markAllAsRead, type Notification } from '@/api/notification';
+import { getMyElderlyList, type ElderlyBindingInfo } from '@/api/family-binding';
 
 // State
 const loading = ref(false);
 const tableData = ref<Notification[]>([]);
 const filterStatus = ref('all');
+const filterType = ref<string | undefined>(undefined);
+const selectedElderlyId = ref<number | undefined>(undefined);
+const elders = ref<{ id: number; label: string }[]>([]);
 const pagination = reactive({
   page: 1,
   limit: 10,
@@ -120,6 +155,22 @@ const getNotificationConfig = (type: string | number) => {
   return configs[String(type)] || configs['system'];
 };
 
+// 加载已绑定老人列表（仅家属角色会有数据）
+const loadElders = async () => {
+  try {
+    const res: any = await getMyElderlyList();
+    const bindings: ElderlyBindingInfo[] = Array.isArray(res) ? res : (res?.data || res || []);
+    elders.value = bindings
+      .filter((b: ElderlyBindingInfo) => b.elderly)
+      .map((b: ElderlyBindingInfo) => ({
+        id: b.elderly.id,
+        label: b.elderly.realName || b.elderly.nickname || b.elderly.username,
+      }));
+  } catch (err) {
+    elders.value = [];
+  }
+};
+
 // API calls
 const handleFilterChange = () => {
   pagination.page = 1;
@@ -138,6 +189,14 @@ const fetchData = async () => {
       params.isRead = 0;
     } else if (filterStatus.value === 'read') {
       params.isRead = 1;
+    }
+
+    if (selectedElderlyId.value) {
+      params.elderlyId = selectedElderlyId.value;
+    }
+
+    if (filterType.value) {
+      params.type = filterType.value;
     }
 
     const res: any = await fetchNotifications(params);
@@ -175,7 +234,8 @@ const handleMarkAllRead = async () => {
 };
 
 // Lifecycle
-onMounted(() => {
+onMounted(async () => {
+  await loadElders();
   fetchData();
 });
 </script>

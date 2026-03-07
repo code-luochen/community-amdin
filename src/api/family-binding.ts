@@ -14,6 +14,7 @@ export interface ElderlyBindingInfo {
   elderly: {
     id: number;
     username: string;
+    realName: string;
     nickname: string;
     avatar: string;
     profile: {
