@@ -120,6 +120,9 @@ import { Check, Bell, WarningFilled, ShoppingCart, InfoFilled } from '@element-p
 import { ElMessage } from 'element-plus';
 import { fetchNotifications, markAsRead, markAllAsRead, type Notification } from '@/api/notification';
 import { getMyElderlyList, type ElderlyBindingInfo } from '@/api/family-binding';
+import { useUserStore } from '@/store/user';
+
+const userStore = useUserStore();
 
 // State
 const loading = ref(false);
@@ -235,7 +238,10 @@ const handleMarkAllRead = async () => {
 
 // Lifecycle
 onMounted(async () => {
-  await loadElders();
+  // 仅家属端需要加载老人列表用于筛选
+  if (userStore.role === 2) {
+    await loadElders();
+  }
   fetchData();
 });
 </script>

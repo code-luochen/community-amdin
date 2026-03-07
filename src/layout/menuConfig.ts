@@ -34,6 +34,7 @@ export const roleMenus: Record<number, MenuItem[]> = {
 		{ title: "订单监控", index: "/admin/order-monitor", icon: "View" },
 		{ title: "健康预警", index: "/admin/health-alert", icon: "Bell" },
 		{ title: "求助处理", index: "/admin/emergency", icon: "Phone" },
+		{ title: "小区地址", index: "/admin/address", icon: "Location" },
 		{ title: "通知中心", index: "/admin/notifications", icon: "Message" },
 	],
 };

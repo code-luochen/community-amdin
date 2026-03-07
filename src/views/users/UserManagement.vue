@@ -84,6 +84,18 @@
                 <span class="text-slate-600 font-medium">{{ row.realName || '-' }}</span>
               </template>
             </el-table-column>
+
+            <el-table-column label="居住地址" min-width="200">
+              <template #default="{ row }">
+                <div v-if="row.profile?.house" class="text-xs">
+                  <div class="text-slate-700 font-semibold">{{ row.profile.house.community?.name }}</div>
+                  <div class="text-slate-400 mt-0.5">
+                    {{ row.profile.house.buildingNo }} - {{ row.profile.house.unitNo || '' }} - {{ row.profile.house.roomNo }}
+                  </div>
+                </div>
+                <span v-else class="text-slate-300">-</span>
+              </template>
+            </el-table-column>
             
             <el-table-column label="角色身份" min-width="140">
               <template #default="{ row }">
@@ -197,6 +209,25 @@
         <el-form-item label="真实姓名 (选填)" prop="realName">
           <el-input v-model="formData.realName" placeholder="用户的真实身份姓名" class="custom-input" />
         </el-form-item>
+
+        <div class="grid grid-cols-2 gap-4" v-if="!isEdit">
+          <el-form-item label="所属小区" prop="communityId">
+            <el-select v-model="formData.communityId" placeholder="选择小区" class="custom-select w-full" @change="handleCommunityChange">
+              <el-option v-for="opt in communityOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
+            </el-select>
+          </el-form-item>
+
+          <el-form-item label="房产地址" prop="houseId">
+            <el-cascader
+              v-model="formData.houseId"
+              :options="currentAddressOptions"
+              :props="{ label: 'label', value: 'value', children: 'children', checkStrictly: false }"
+              placeholder="选择楼栋/单元/门牌"
+              class="custom-cascader w-full"
+              :disabled="!formData.communityId"
+            />
+          </el-form-item>
+        </div>
       </el-form>
       
       <template #footer>
@@ -227,6 +258,7 @@ import {
   type User,
   type UserQuery
 } from '@/api/users';
+import { getAddressTree } from '@/api/community';
 
 const userStore = useUserStore();
 
@@ -257,7 +289,13 @@ const formData = reactive({
   role: undefined as number | undefined,
   nickname: '',
   realName: '',
+  communityId: undefined as number | undefined,
+  houseId: [] as any[], // [buildingNo, unitNo, houseId]
 });
+
+const communityOptions = ref<any[]>([]);
+const allAddressData = ref<any[]>([]);
+const currentAddressOptions = ref<any[]>([]);
 
 const formRules = reactive<FormRules>({
   username: [
@@ -270,6 +308,8 @@ const formRules = reactive<FormRules>({
   ],
   role: [{ required: true, message: '请选择角色', trigger: 'change' }],
   nickname: [{ required: true, message: '请输入昵称', trigger: 'blur' }],
+  communityId: [{ required: true, message: '请选择所属小区', trigger: 'change' }],
+  houseId: [{ required: true, message: '请选择详细地址', trigger: 'change' }],
 });
 
 // Helper functions
@@ -341,7 +381,11 @@ const openDialog = (row?: User) => {
     formData.role = undefined;
     formData.nickname = '';
     formData.realName = '';
+    formData.communityId = undefined;
+    formData.houseId = [];
+    currentAddressOptions.value = [];
   }
+  fetchAddressTree();
   dialogVisible.value = true;
   setTimeout(() => {
     formRef.value?.clearValidate();
@@ -361,9 +405,13 @@ const submitForm = async () => {
           });
           ElMessage.success('用户资料已成功更新');
         } else {
+          const houseId = formData.houseId[formData.houseId.length - 1]; // houseId is the last level
+
           await createUser({
             ...formData,
-            role: formData.role
+            role: formData.role,
+            communityId: formData.communityId,
+            houseId,
           });
           ElMessage.success('新用户创建成功');
         }
@@ -394,6 +442,43 @@ const handleResetPassword = async (id: number) => {
     ElMessage.success('该用户密码已重置为 123456');
   } catch (error) {
     ElMessage.error('密码重置请求失败');
+  }
+};
+
+const fetchAddressTree = async () => {
+  try {
+    const res: any = await getAddressTree();
+    const rawData = Array.isArray(res) ? res : (res.data || []);
+    allAddressData.value = rawData;
+    
+    // Transform to Community options
+    communityOptions.value = rawData.map((node: any) => ({
+      label: node.communityName,
+      value: node.communityId
+    }));
+  } catch (error) {
+    ElMessage.error('获取小区列表失败');
+  }
+};
+
+const handleCommunityChange = (val: number) => {
+  formData.houseId = [];
+  const node = allAddressData.value.find(n => n.communityId === val);
+  if (node) {
+    currentAddressOptions.value = node.buildings.map((b: any) => ({
+      label: b.buildingNo,
+      value: b.buildingNo,
+      children: b.units.map((u: any) => ({
+        label: u.unitNo || '无单元',
+        value: u.unitNo || '__none__',
+        children: u.rooms.map((r: any) => ({
+          label: r.roomNo,
+          value: r.id
+        }))
+      }))
+    }));
+  } else {
+    currentAddressOptions.value = [];
   }
 };
 
@@ -511,22 +596,35 @@ onMounted(() => {
 
 /* Custom Overrides for Element Plus */
 ::v-deep(.el-input__wrapper), 
-::v-deep(.el-select__wrapper) {
+::v-deep(.el-select__wrapper),
+::v-deep(.el-cascader) {
   border-radius: 0.75rem;
   box-shadow: 0 0 0 1px #e2e8f0 inset !important;
   background-color: #f8fafc;
-  padding: 0.25rem 1rem;
   transition: all 0.2s;
 }
 
+::v-deep(.el-input__wrapper),
+::v-deep(.el-select__wrapper) {
+  padding: 0.25rem 1rem;
+}
+
+::v-deep(.el-cascader .el-input__wrapper) {
+  padding: 0.25rem 1rem;
+  background-color: transparent !important;
+  box-shadow: none !important;
+}
+
 ::v-deep(.el-input__wrapper:hover), 
-::v-deep(.el-select__wrapper:hover) {
+::v-deep(.el-select__wrapper:hover),
+::v-deep(.el-cascader:hover) {
   box-shadow: 0 0 0 1px #cbd5e1 inset !important;
   background-color: #ffffff;
 }
 
 ::v-deep(.el-input__wrapper.is-focus), 
-::v-deep(.el-select__wrapper.is-focus) {
+::v-deep(.el-select__wrapper.is-focus),
+::v-deep(.el-cascader.is-focus) {
   box-shadow: 0 0 0 2px #3b82f6 inset !important;
   background-color: #ffffff;
 }

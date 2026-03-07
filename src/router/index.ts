@@ -147,6 +147,12 @@ const routes: Array<RouteRecordRaw> = [
 				meta: { title: '求助处理', role: 4 }
 			},
 			{
+				path: 'address',
+				name: 'AdminAddress',
+				component: () => import('../views/admin/address.vue'),
+				meta: { title: '地址管理', role: 4 }
+			},
+			{
 				path: "notifications",
 				name: "AdminNotifications",
 				component: () => import("../views/notifications/index.vue"),

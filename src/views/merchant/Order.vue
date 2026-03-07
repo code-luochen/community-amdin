@@ -55,9 +55,20 @@
               </template>
             </el-table-column>
             
-            <el-table-column prop="address" label="配送/服务地址" min-width="200" show-overflow-tooltip>
+            <el-table-column label="配送地址" min-width="200">
               <template #default="{ row }">
-                 <span class="text-slate-600 truncate-2">{{ row.address }}</span>
+                <div v-if="row.houseSnapshot" class="address-block">
+                  <span class="address-snapshot">{{ row.houseSnapshot }}</span>
+                  <el-button
+                    link
+                    size="small"
+                    class="copy-btn"
+                    @click.stop="copyAddress(row.houseSnapshot)"
+                  >
+                    <el-icon><DocumentCopy /></el-icon>
+                  </el-button>
+                </div>
+                <span v-else class="text-slate-400 text-xs">{{ row.address || '地址未设置' }}</span>
               </template>
             </el-table-column>
 
@@ -109,6 +120,7 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
+import { DocumentCopy } from '@element-plus/icons-vue';
 import { getOrderList, updateOrderStatus } from '../../api/order';
 import { useUserStore } from '../../store/user';
 
@@ -192,6 +204,15 @@ const formatDate = (val: string) => {
   if (!val) return '-';
   const date = new Date(val);
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
+};
+
+const copyAddress = async (text: string) => {
+  try {
+    await navigator.clipboard.writeText(text);
+    ElMessage.success('地址已复制到剪贴板');
+  } catch {
+    ElMessage.error('复制失败，请手动复制');
+  }
 };
 
 onMounted(() => {
@@ -416,7 +437,40 @@ onMounted(() => {
 .truncate-2 {
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;  
   overflow: hidden;
+}
+
+/* FE-25: 结构化地址展示 */
+.address-block {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.address-snapshot {
+  display: inline-block;
+  background: linear-gradient(135deg, #dbeafe 0%, #ede9fe 100%);
+  color: #1e40af;
+  font-weight: 700;
+  font-size: 0.82rem;
+  padding: 0.25rem 0.65rem;
+  border-radius: 0.5rem;
+  letter-spacing: 0.02em;
+  font-family: 'Outfit', monospace;
+  border: 1px solid #bfdbfe;
+  white-space: nowrap;
+}
+
+.copy-btn {
+  color: #94a3b8;
+  padding: 0;
+  min-height: auto;
+  transition: color 0.2s;
+}
+
+.copy-btn:hover {
+  color: #3b82f6;
 }
 </style>

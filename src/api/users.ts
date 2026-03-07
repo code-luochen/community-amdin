@@ -19,6 +19,8 @@ export interface User {
   avatar?: string;
   createdAt: string;
   updatedAt: string;
+  communityId?: number;
+  houseId?: number;
 }
 
 export interface UserListResult {
@@ -34,7 +36,7 @@ export const fetchUsers = (params: UserQuery) => {
 };
 
 // 创建用户
-export const createUser = (data: Partial<User>) => {
+export const createUser = (data: Partial<User> & { communityId?: number; houseId?: number; password?: string }) => {
   return request.post<any, any>('/users', data);
 };
 
