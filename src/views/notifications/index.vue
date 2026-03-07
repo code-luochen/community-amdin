@@ -21,7 +21,14 @@
       <div class="content-card shadow-soft">
         <!-- List Header -->
         <div class="list-header flex items-center justify-between mb-4 pb-4 border-b border-dashed border-slate-200">
-          <div class="text-slate-700 font-semibold">消息列表</div>
+          <div class="flex items-center gap-4">
+            <div class="text-slate-700 font-semibold">消息列表</div>
+            <el-radio-group v-model="filterStatus" size="small" @change="handleFilterChange">
+              <el-radio-button label="all">全部</el-radio-button>
+              <el-radio-button label="unread">未读</el-radio-button>
+              <el-radio-button label="read">已读</el-radio-button>
+            </el-radio-group>
+          </div>
           <div class="text-sm text-slate-500">共 {{ pagination.total }} 条通知</div>
         </div>
 
@@ -31,9 +38,12 @@
           <div
             v-for="item in tableData"
             :key="item.id"
-            :class="['notification-item', item.isRead === 0 ? 'unread' : 'read']"
+            :class="['notification-item', !item.isRead ? 'unread' : 'read']"
             @click="readNotification(item)"
           >
+            <!-- Unread Dot -->
+            <div v-if="!item.isRead" class="unread-dot"></div>
+            
             <div class="item-icon-wrapper" :class="'icon-' + getNotificationConfig(item.type).color">
               <el-icon :size="20"><component :is="getNotificationConfig(item.type).icon" /></el-icon>
             </div>
@@ -42,7 +52,7 @@
               <div class="item-header flex justify-between items-start mb-1">
                 <div class="item-title flex items-center gap-2">
                   <span class="font-semibold text-slate-800">{{ item.title || getNotificationConfig(item.type).label }}</span>
-                  <span v-if="item.isRead === 0" class="new-badge">新</span>
+                  <span v-if="!item.isRead" class="new-badge">新</span>
                 </div>
                 <div class="item-time text-xs text-slate-400 font-medium">
                   {{ formatDate(item.createdAt) }}
@@ -82,6 +92,7 @@ import { fetchNotifications, markAsRead, markAllAsRead, type Notification } from
 // State
 const loading = ref(false);
 const tableData = ref<Notification[]>([]);
+const filterStatus = ref('all');
 const pagination = reactive({
   page: 1,
   limit: 10,
@@ -89,7 +100,7 @@ const pagination = reactive({
 });
 
 const hasUnread = computed(() => {
-  return tableData.value.some(item => item.isRead === 0);
+  return tableData.value.some(item => !item.isRead);
 });
 
 // Helper functions
@@ -110,16 +121,29 @@ const getNotificationConfig = (type: string | number) => {
 };
 
 // API calls
+const handleFilterChange = () => {
+  pagination.page = 1;
+  fetchData();
+};
+
 const fetchData = async () => {
   loading.value = true;
   try {
-    const res: any = await fetchNotifications({
+    const params: any = {
       page: pagination.page,
       limit: pagination.limit,
-    });
-    const result = res.data || res;
-    tableData.value = result.items || [];
-    pagination.total = result.total || 0;
+    };
+    
+    if (filterStatus.value === 'unread') {
+      params.isRead = 0;
+    } else if (filterStatus.value === 'read') {
+      params.isRead = 1;
+    }
+
+    const res: any = await fetchNotifications(params);
+
+    tableData.value = res.data || [];
+    pagination.total = res.total || 0;
   } catch (error) {
     ElMessage.error('获取通知数据失败');
   } finally {
@@ -273,6 +297,7 @@ onMounted(() => {
   background-color: #ffffff;
   transition: all 0.25s ease;
   cursor: pointer;
+  position: relative;
 }
 
 .notification-item:hover {
@@ -323,6 +348,32 @@ onMounted(() => {
   border-radius: 0.25rem;
   font-weight: 700;
   letter-spacing: 0.05em;
+}
+
+.unread-dot {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 10px;
+  height: 10px;
+  background-color: #ff4d4f;
+  border-radius: 50%;
+  border: 2px solid white;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  animation: pulse-red 2s infinite;
+  z-index: 20;
+}
+
+@keyframes pulse-red {
+  0% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4);
+  }
+  70% {
+    box-shadow: 0 0 0 6px rgba(239, 68, 68, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+  }
 }
 
 .pagination-wrapper {

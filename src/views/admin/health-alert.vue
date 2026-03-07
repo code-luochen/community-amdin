@@ -176,12 +176,13 @@ const loadRecords = async () => {
   loading.value = true;
   try {
     const res = await fetchHealthRecords(query.value);
+
     if (res && res.data) {
       records.value = res.data;
       total.value = res.total;
     } else {
       // @ts-ignore
-      records.value = res.data || res.list || [];
+      records.value = res.items || res.list || [];
       // @ts-ignore
       total.value = res.total || 0;
     }

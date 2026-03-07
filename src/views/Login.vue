@@ -151,8 +151,20 @@ const handleLogin = async () => {
 		if (valid) {
 			loading.value = true;
 			try {
+				// 根据角色增加统一前缀进行登录
+				let finalUsername = loginForm.username;
+				const rolePrefixMap: Record<number, string> = {
+					2: "family_",
+					3: "merchant_",
+					4: "admin_",
+				};
+				const prefix = rolePrefixMap[loginForm.role];
+				if (prefix && !finalUsername.startsWith(prefix)) {
+					finalUsername = `${prefix}${finalUsername}`;
+				}
+
 				const res = (await login({
-					username: loginForm.username,
+					username: finalUsername,
 					password: loginForm.password,
 					role: loginForm.role,
 				})) as any;
@@ -176,8 +188,20 @@ const handleLogin = async () => {
 						router.push("/admin/dashboard");
 						break;
 				}
-			} catch (error) {
+			} catch (error: any) {
 				console.error("Login failed:", error);
+				// 拦截器已经在 request.ts 中通过 ElMessage 统一提示了 HTTP 错误。
+				// 这里只需要处理那些非服务端响应导致的异常（如逻辑抛错、超时等）。
+				if (error.config || error.response) {
+					// 判定为 axios 错误，拦截器已处理过
+					return;
+				}
+
+				if (error.message && error.message !== 'Error') {
+					ElMessage.error(error.message);
+				} else {
+					ElMessage.error("登录时发生未知错误，请重试");
+				}
 			} finally {
 				loading.value = false;
 			}

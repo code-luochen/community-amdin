@@ -24,11 +24,19 @@ export const useUserStore = defineStore("user", () => {
 		localStorage.removeItem("userInfo");
 	};
 
+	const updateUserInfo = (newUser: Partial<UserInfo>) => {
+		if (userInfo.value) {
+			userInfo.value = { ...userInfo.value, ...newUser };
+			localStorage.setItem("userInfo", JSON.stringify(userInfo.value));
+		}
+	};
+
 	return {
 		token,
 		userInfo,
 		role,
 		setLoginData,
 		clearToken,
+		updateUserInfo,
 	};
 });

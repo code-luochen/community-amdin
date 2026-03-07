@@ -12,6 +12,7 @@ export const roleMenus: Record<number, MenuItem[]> = {
 		{ title: "家属首页", index: "/family/dashboard", icon: "House" },
 		{ title: "健康监控", index: "/family/health", icon: "Monitor" },
 		{ title: "订单监督", index: "/family/order", icon: "List" },
+		{ title: "绑定管理", index: "/family/binding", icon: "Link" },
 		{ title: "通知中心", index: "/family/notifications", icon: "Message" },
 	],
 	// 3: 商家

@@ -26,20 +26,44 @@ service.interceptors.response.use(
 		if (code === 401 || code === 403) {
 			const userStore = useUserStore();
 			userStore.clearToken();
-			window.location.href = "/login";
+			// 只有不在登录页时才跳转，避免登录失败时重复跳转导致闪烁
+			if (window.location.pathname !== "/login") {
+				window.location.href = "/login";
+			}
 		}
-		ElMessage.error(message || "系统错误");
-		return Promise.reject(new Error(message || "Error"));
+
+		// 登录接口 4xx 错误统一掩盖提示
+		let displayMessage = message || "系统错误";
+		if (response.config.url?.includes("/auth/login") && code >= 400 && code < 500) {
+			displayMessage = "账号或密码错误,请重试";
+		}
+		ElMessage.error(displayMessage);
+		return Promise.reject(new Error(displayMessage || "Error"));
 	},
 	(error) => {
+		const userStore = useUserStore();
 		if (error.response && (error.response.status === 401 || error.response.status === 403)) {
-			const userStore = useUserStore();
 			userStore.clearToken();
-			window.location.href = "/login";
-			ElMessage.error(error.response.data?.message || "无权限或登录已过期");
-		} else {
-			ElMessage.error(error.message || "网络连接异常");
+			// 只有不在登录页时才跳转，避免登录失败时重复跳转导致闪烁
+			if (window.location.pathname !== "/login") {
+				window.location.href = "/login";
+			}
 		}
+
+		// 优先级：服务器自定义错误消息 > 服务器原始错误对象中的消息 > axios 自己的错误消息 > 默认文字
+		let errorMessage =
+			error.response?.data?.message ||
+			error.response?.data?.error?.message ||
+			error.response?.data?.error ||
+			error.message ||
+			"系统异常";
+
+		// 登录接口 4xx 错误统一掩盖提示
+		if (error.config?.url?.includes("/auth/login") && error.response?.status >= 400 && error.response?.status < 500) {
+			errorMessage = "账号或密码错误,请重试";
+		}
+
+		ElMessage.error(errorMessage);
 		return Promise.reject(error);
 	},
 );

@@ -52,3 +52,14 @@ export const updateUserStatus = (id: number, status: number) => {
 export const resetPassword = (id: number) => {
   return request.post<any, any>(`/users/${id}/reset-password`);
 };
+
+// 获取当前用户个人信息
+export const getProfile = () => {
+  return request.get<any, User>('/users/me');
+};
+
+// 更新当前用户个人信息
+export const updateProfile = (data: Partial<User>) => {
+  return request.patch<any, any>('/users/me', data);
+};
+

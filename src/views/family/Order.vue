@@ -104,7 +104,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue';
-import { Search, Clock } from '@element-plus/icons-vue';
+import { Clock } from '@element-plus/icons-vue';
 import { ElMessage } from 'element-plus';
 import { getOrderList } from '../../api/order';
 

@@ -39,7 +39,7 @@
           </div>
           <el-dropdown @command="handleCommand" trigger="click">
             <span class="user-dropdown">
-              <el-avatar :size="32" :src="userStore.userInfo?.avatar || 'https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png'" />
+              <el-avatar :size="32" :src="userAvatar" />
               <el-icon class="el-icon--right"><ArrowDown /></el-icon>
             </span>
             <template #dropdown>
@@ -80,6 +80,19 @@ const userStore = useUserStore();
 
 const currentRole = computed(() => userStore.role || 0);
 const currentMenus = computed(() => roleMenus[currentRole.value] || []);
+
+const userAvatar = computed(() => {
+  const path = userStore.userInfo?.avatar;
+  if (!path) return 'https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png';
+  if (path.startsWith('http')) return path;
+  
+  const apiBaseUrl = import.meta.env.VITE_APP_BASE_API;
+  if (apiBaseUrl && apiBaseUrl.startsWith('http')) {
+    const origin = new URL(apiBaseUrl).origin;
+    return `${origin}${path}`;
+  }
+  return path;
+});
 
 const themeClass = computed(() => {
   switch (currentRole.value) {
@@ -168,7 +181,9 @@ const handleCommand = async (command: string) => {
       // 用户点击了取消
     }
   } else if (command === 'profile') {
-    ElMessage.info('前往个人信息中心 (开发中)');
+    if (currentRole.value === 2) router.push('/family/profile');
+    else if (currentRole.value === 3) router.push('/merchant/profile');
+    else if (currentRole.value === 4) router.push('/admin/profile');
   }
 };
 </script>

@@ -43,10 +43,22 @@ const routes: Array<RouteRecordRaw> = [
 				meta: { title: "订单监督", role: 2 },
 			},
 			{
+				path: "binding",
+				name: "FamilyBinding",
+				component: () => import("../views/family-binding/Index.vue"),
+				meta: { title: "绑定管理", role: 2 },
+			},
+			{
 				path: "notifications",
 				name: "FamilyNotifications",
 				component: () => import("../views/notifications/index.vue"),
 				meta: { title: "通知中心", role: 2 },
+			},
+			{
+				path: "profile",
+				name: "FamilyProfile",
+				component: () => import("../views/profile/Index.vue"),
+				meta: { title: "个人信息", role: 2 },
 			},
 		],
 	},
@@ -81,6 +93,12 @@ const routes: Array<RouteRecordRaw> = [
 				name: "MerchantNotifications",
 				component: () => import("../views/notifications/index.vue"),
 				meta: { title: "通知中心", role: 3 },
+			},
+			{
+				path: "profile",
+				name: "MerchantProfile",
+				component: () => import("../views/profile/Index.vue"),
+				meta: { title: "个人信息", role: 3 },
 			}
 		],
 	},
@@ -133,6 +151,12 @@ const routes: Array<RouteRecordRaw> = [
 				name: "AdminNotifications",
 				component: () => import("../views/notifications/index.vue"),
 				meta: { title: "通知中心", role: 4 },
+			},
+			{
+				path: "profile",
+				name: "AdminProfile",
+				component: () => import("../views/profile/Index.vue"),
+				meta: { title: "个人信息", role: 4 },
 			}
 		],
 	},

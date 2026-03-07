@@ -14,6 +14,7 @@ export interface Notification {
 export interface NotificationQuery {
   page?: number;
   limit?: number;
+  isRead?: string | number | boolean;
 }
 
 export const fetchNotifications = (params?: NotificationQuery) => {

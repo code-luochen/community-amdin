@@ -108,7 +108,6 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue';
-import { Search } from '@element-plus/icons-vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { getOrderList, updateOrderStatus } from '../../api/order';
 import { useUserStore } from '../../store/user';
