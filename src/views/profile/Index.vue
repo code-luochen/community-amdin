@@ -2,7 +2,10 @@
   <div class="profile-container">
     <el-card class="profile-card">
       <template #header>
-        <div class="card-header">
+        <div class="card-header flex items-center gap-2">
+          <el-button link @click="goBack" class="back-btn!">
+            <el-icon><ArrowLeft /></el-icon>
+          </el-button>
           <span>个人信息设置</span>
         </div>
       </template>
@@ -62,7 +65,8 @@
             <el-input :model-value="formatDate(profileForm.createdAt)" disabled />
           </el-form-item>
 
-          <div class="form-actions">
+          <div class="form-actions gap-3">
+            <el-button @click="goBack">取消</el-button>
             <el-button type="primary" :loading="saving" @click="saveProfile">
               保存修改
             </el-button>
@@ -74,7 +78,7 @@
 </template>
 
 <script setup lang="ts">
-import { Camera, Plus } from '@element-plus/icons-vue';
+import { Camera, Plus, ArrowLeft } from '@element-plus/icons-vue';
 import { ElMessage, type FormInstance, type FormRules, type UploadProps } from 'element-plus';
 import { onMounted, reactive, ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
@@ -85,6 +89,10 @@ const router = useRouter();
 const userStore = useUserStore();
 const formRef = ref<FormInstance>();
 const saving = ref(false);
+
+const goBack = () => {
+  router.back();
+};
 
 const uploadUrl = computed(() => {
   const base = import.meta.env.VITE_APP_BASE_API || '/api';
@@ -358,5 +366,14 @@ onMounted(() => {
   padding: 10px 24px;
   border-radius: 8px;
   font-weight: 500;
+}
+
+.back-btn {
+  font-size: 18px;
+  color: #64748b;
+  padding: 0;
+}
+.back-btn:hover {
+  color: var(--el-color-primary);
 }
 </style>
