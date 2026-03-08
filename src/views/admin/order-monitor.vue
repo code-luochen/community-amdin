@@ -21,6 +21,9 @@
         <div class="search-toolbar">
           <el-form :model="queryParams" inline class="premium-form">
             <el-form-item>
+              <el-input v-model="queryParams.orderNo" placeholder="订单编号 (SN...)" clearable class="custom-input w-48" :prefix-icon="Search" />
+            </el-form-item>
+            <el-form-item>
               <el-input v-model="queryParams.merchantId" placeholder="搜索商家账号ID..." clearable class="custom-input w-48" :prefix-icon="Search" />
             </el-form-item>
             <el-form-item>
@@ -35,8 +38,16 @@
                 <el-option label="已取消" :value="4" />
               </el-select>
             </el-form-item>
+            <el-form-item>
+              <el-select v-model="queryParams.communityId" placeholder="所属小区" clearable class="custom-select w-40!">
+                <el-option v-for="c in communityOptions" :key="c.id" :label="c.name" :value="c.id" />
+              </el-select>
+            </el-form-item>
+            <el-form-item>
+              <el-input v-model="queryParams.address" placeholder="搜索详细地址..." clearable class="custom-input w-52" :prefix-icon="Search" />
+            </el-form-item>
             <el-form-item class="ml-auto! mr-0!">
-              <div class="action-buttons">
+              <div class="action-buttons flex gap-3">
                 <el-button @click="resetSearch" class="premium-btn secondary px-6 h-10 shadow-none border! border-slate-200! rounded-xl!">重置</el-button>
                 <el-button type="primary" @click="handleSearch" :loading="loading" class="premium-btn primary-solid px-6 h-10 rounded-xl! border-none!">查询</el-button>
               </div>
@@ -61,10 +72,16 @@
               </template>
             </el-table-column>
 
-            <el-table-column label="参与人员 (ID)" min-width="130">
+            <el-table-column label="参与人员" min-width="160">
               <template #default="{ row }">
-                <div class="text-xs">商家: <span class="font-medium text-slate-700">{{ row.merchantId }}</span></div>
-                <div class="text-xs">长者: <span class="font-medium text-slate-700">{{ row.elderlyId }}</span></div>
+                <div class="text-xs">
+                  <span class="text-slate-400">商家:</span> 
+                  <span class="font-medium text-slate-700 ml-1">{{ row.merchant?.nickname || row.merchantId }}</span>
+                </div>
+                <div class="text-xs mt-1">
+                  <span class="text-slate-400">长者:</span> 
+                  <span class="font-medium text-slate-700 ml-1">{{ row.elderly?.nickname || row.elderlyId }}</span>
+                </div>
               </template>
             </el-table-column>
             
@@ -123,6 +140,7 @@ import { ref, reactive, onMounted } from 'vue';
 import { Search, Clock } from '@element-plus/icons-vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { getOrderList, updateOrderStatus } from '../../api/order';
+import { getCommunityList, type Community } from '../../api/community';
 
 const loading = ref(false);
 const tableData = ref<any[]>([]);
@@ -134,7 +152,12 @@ const queryParams = reactive({
   status: undefined as number | undefined,
   elderlyId: '',
   merchantId: '',
+  communityId: undefined as number | undefined,
+  address: '',
+  orderNo: '',
 });
+
+const communityOptions = ref<Community[]>([]);
 
 const fetchOrders = async () => {
   loading.value = true;
@@ -143,6 +166,8 @@ const fetchOrders = async () => {
       ...queryParams,
       elderlyId: queryParams.elderlyId || undefined,
       merchantId: queryParams.merchantId || undefined,
+      address: queryParams.address || undefined,
+      orderNo: queryParams.orderNo || undefined
     }
     const res = await getOrderList(params);
     tableData.value = res.items || [];
@@ -163,8 +188,21 @@ const resetSearch = () => {
   queryParams.merchantId = '';
   queryParams.elderlyId = '';
   queryParams.status = undefined;
+  queryParams.communityId = undefined;
+  queryParams.address = '';
+  queryParams.orderNo = '';
   handleSearch();
 };
+
+const fetchInitialData = async () => {
+  try {
+    const res = await getCommunityList();
+    // @ts-ignore
+    communityOptions.value = res.data || res;
+  } catch (err) {
+    console.error('Fetch community error:', err);
+  }
+}
 
 const handleCancel = async (row: any) => {
   try {
@@ -214,6 +252,7 @@ const formatDate = (val: string) => {
 };
 
 onMounted(() => {
+  fetchInitialData();
   fetchOrders();
 });
 </script>
@@ -307,7 +346,7 @@ onMounted(() => {
 
 /* Form Styles */
 .premium-form .el-form-item {
-  margin-bottom: 0;
+  margin-bottom: 1rem;
   margin-right: 1rem;
 }
 

@@ -3,10 +3,11 @@ import request from './request';
 /**
  * 获取管理员数据看板统计信息
  */
-export function fetchDashboardData() {
+export function fetchDashboardData(communityId?: number) {
   return request({
     url: '/statistics/dashboard',
     method: 'get',
+    params: communityId ? { communityId } : undefined,
   });
 }
 

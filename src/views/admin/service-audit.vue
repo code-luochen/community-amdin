@@ -57,6 +57,16 @@
                 <el-option label="已下架" :value="0" />
               </el-select>
             </el-form-item>
+            <el-form-item>
+              <el-select 
+                v-model="searchForm.communityId" 
+                placeholder="所属小区" 
+                clearable 
+                class="custom-select w-48!"
+              >
+                <el-option v-for="c in communityOptions" :key="c.id" :label="c.name" :value="c.id" />
+              </el-select>
+            </el-form-item>
             <el-form-item class="ml-auto! mr-0!">
               <div class="action-buttons">
                 <el-button @click="resetSearch" class="premium-btn secondary px-6 h-10 shadow-none border! border-slate-200! rounded-xl!">重置</el-button>
@@ -192,6 +202,7 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue';
 import { serviceApi, type ServiceItem } from '../../api/service';
+import { getCommunityList, type Community } from '../../api/community';
 import { ElMessage } from 'element-plus';
 import { Search, Clock, Shop, Check, Close } from '@element-plus/icons-vue';
 
@@ -205,7 +216,10 @@ const searchForm = reactive({
   type: undefined as number | undefined,
   auditStatus: undefined as number | undefined,
   status: undefined as number | undefined,
+  communityId: undefined as number | undefined,
 });
+
+const communityOptions = ref<Community[]>([]);
 
 // 分页
 const pagination = reactive({
@@ -217,7 +231,18 @@ const pagination = reactive({
 // ========== 生命周期 ==========
 onMounted(() => {
   fetchData();
+  fetchInitialData();
 });
+
+const fetchInitialData = async () => {
+  try {
+    const res = await getCommunityList();
+    // @ts-ignore
+    communityOptions.value = res.data || res;
+  } catch (error) {
+    console.error('获取小区列表失败:', error);
+  }
+}
 
 // ========== 方法 ==========
 const fetchData = async () => {
@@ -230,6 +255,7 @@ const fetchData = async () => {
       type: searchForm.type || undefined,
       auditStatus: searchForm.auditStatus == null ? undefined : searchForm.auditStatus,
       status: searchForm.status ?? undefined,
+      communityId: searchForm.communityId,
     });
     // @ts-ignore
     const result = res.data || res;
@@ -253,6 +279,7 @@ const resetSearch = () => {
   searchForm.type = undefined;
   searchForm.auditStatus = undefined;
   searchForm.status = undefined;
+  searchForm.communityId = undefined;
   handleSearch();
 };
 

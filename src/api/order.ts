@@ -6,6 +6,9 @@ export interface OrderQuery {
   status?: number;
   elderlyId?: string;
   merchantId?: string;
+  communityId?: number;
+  address?: string;
+  orderNo?: string;
 }
 
 export interface OrderListResult {

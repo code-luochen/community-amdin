@@ -21,7 +21,10 @@
         <div class="search-toolbar">
           <el-form :model="queryParams" inline class="premium-form">
             <el-form-item>
-              <el-select v-model="queryParams.status" placeholder="全选状态" clearable class="custom-select w-40!">
+              <el-input v-model="queryParams.orderNo" placeholder="订单编号 (SN...)" clearable class="custom-input w-48" :prefix-icon="Search" />
+            </el-form-item>
+            <el-form-item>
+              <el-select v-model="queryParams.status" placeholder="订单状态" clearable class="custom-select w-40!">
                 <el-option label="待接单" :value="0" />
                 <el-option label="已接单" :value="1" />
                 <el-option label="配送中" :value="2" />
@@ -29,8 +32,16 @@
                 <el-option label="已取消" :value="4" />
               </el-select>
             </el-form-item>
+            <el-form-item>
+              <el-select v-model="queryParams.communityId" placeholder="所属小区" clearable class="custom-select w-48!">
+                <el-option v-for="c in communityOptions" :key="c.id" :label="c.name" :value="c.id" />
+              </el-select>
+            </el-form-item>
+            <el-form-item>
+              <el-input v-model="queryParams.address" placeholder="搜索详细地址..." clearable class="custom-input w-56" />
+            </el-form-item>
             <el-form-item class="ml-auto! mr-0!">
-              <div class="action-buttons">
+              <div class="action-buttons flex gap-3">
                 <el-button @click="resetSearch" class="premium-btn secondary px-6 h-10 shadow-none border! border-slate-200! rounded-xl!">重置</el-button>
                 <el-button type="primary" @click="handleSearch" :loading="loading" class="premium-btn primary-solid px-6 h-10 rounded-xl! border-none!">查询</el-button>
               </div>
@@ -120,8 +131,9 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import { DocumentCopy } from '@element-plus/icons-vue';
+import { DocumentCopy, Search } from '@element-plus/icons-vue';
 import { getOrderList, updateOrderStatus } from '../../api/order';
+import { getCommunityList, type Community } from '../../api/community';
 import { useUserStore } from '../../store/user';
 
 const userStore = useUserStore();
@@ -133,13 +145,22 @@ const queryParams = reactive({
   page: 1,
   limit: 10,
   status: undefined as number | undefined,
+  communityId: undefined as number | undefined,
+  address: '',
+  orderNo: '',
   merchantId: userStore.userInfo?.id?.toString(),
 });
+
+const communityOptions = ref<Community[]>([]);
 
 const fetchOrders = async () => {
   loading.value = true;
   try {
-    const res = await getOrderList(queryParams);
+    const res = await getOrderList({
+      ...queryParams,
+      address: queryParams.address || undefined,
+      orderNo: queryParams.orderNo || undefined
+    });
     tableData.value = res.items || [];
     total.value = res.total || 0;
   } catch (error) {
@@ -149,6 +170,16 @@ const fetchOrders = async () => {
   }
 };
 
+const fetchInitialData = async () => {
+  try {
+    const res = await getCommunityList();
+    // @ts-ignore
+    communityOptions.value = res.data || res;
+  } catch (err) {
+    console.error('Fetch community error:', err);
+  }
+}
+
 const handleSearch = () => {
   queryParams.page = 1;
   fetchOrders();
@@ -156,6 +187,9 @@ const handleSearch = () => {
 
 const resetSearch = () => {
   queryParams.status = undefined;
+  queryParams.communityId = undefined;
+  queryParams.address = '';
+  queryParams.orderNo = '';
   handleSearch();
 };
 
@@ -216,6 +250,7 @@ const copyAddress = async (text: string) => {
 };
 
 onMounted(() => {
+  fetchInitialData();
   fetchOrders();
 });
 </script>
@@ -306,7 +341,7 @@ onMounted(() => {
 }
 
 .premium-form .el-form-item {
-  margin-bottom: 0;
+  margin-bottom: 1rem;
   margin-right: 1rem;
 }
 

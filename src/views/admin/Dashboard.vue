@@ -10,7 +10,22 @@
             <h1 class="page-title">系统数据看板</h1>
             <p class="page-subtitle">实时监控社区运行指标，协调服务响应与资源分配</p>
           </div>
-          <div class="header-actions">
+          <div class="header-actions flex items-center gap-3">
+            <el-select
+              v-model="selectedCommunityId"
+              placeholder="全部小区"
+              clearable
+              class="community-filter-select"
+              @change="handleCommunityFilter"
+              style="width: 180px;"
+            >
+              <el-option
+                v-for="c in communityOptions"
+                :key="c.id"
+                :label="c.name"
+                :value="c.id"
+              />
+            </el-select>
             <div class="current-date-badge shadow-sm">
               <el-icon class="mr-2 text-primary"><Calendar /></el-icon>
               <span>{{ currentDate }}</span>
@@ -136,7 +151,12 @@
                   <span class="task-title font-bold text-red-600">紧急求助: {{ emergency.elderly?.nickname || '老年用户' }}</span>
                   <span class="task-time">{{ formatTime(emergency.createdAt) }}</span>
                 </div>
-                <div class="task-desc text-sm text-slate-500 truncate max-w-md">{{ emergency.location }}</div>
+                <div class="flex items-center gap-2 mt-1">
+                  <el-tag size="small" type="danger" effect="plain" class="border-red-100!">
+                    {{ emergency.elderly?.house ? `${emergency.elderly.house.buildingNo}-${emergency.elderly.house.unitNo || ''}-${emergency.elderly.house.roomNo}` : '未知住址' }}
+                  </el-tag>
+                  <div class="task-desc text-xs text-slate-400 truncate max-w-md">{{ emergency.location }}</div>
+                </div>
               </div>
               <el-button type="danger" size="small" class="rounded-lg!" @click="$router.push('/admin/emergency')">处理</el-button>
             </div>
@@ -151,7 +171,12 @@
                   <span class="task-title font-bold text-slate-700">服务审核: {{ service.name }}</span>
                   <span class="task-time text-slate-400">{{ formatTime(service.createdAt) }}</span>
                 </div>
-                <div class="task-desc text-sm text-slate-500">发布者: {{ service.merchant?.nickname || '社区商家' }}</div>
+                <div class="flex items-center gap-2 mt-1">
+                  <span class="text-xs text-slate-500">发布者: {{ service.merchant?.nickname || '社区商家' }}</span>
+                  <el-tag size="small" type="info" effect="plain" v-if="service.merchant?.house">
+                    {{ service.merchant.house.buildingNo }}-{{ service.merchant.house.roomNo }}
+                  </el-tag>
+                </div>
               </div>
               <el-button type="primary" size="small" class="rounded-lg!" @click="$router.push('/admin/service-audit')">审核</el-button>
             </div>
@@ -197,6 +222,7 @@ import VChart, { THEME_KEY } from "vue-echarts";
 import { fetchDashboardData, type DashboardData } from '@/api/statistics';
 import { serviceApi, type ServiceItem } from '@/api/service';
 import { fetchEmergencies, type EmergencyLog } from '@/api/emergency';
+import { getCommunityList, type Community } from '@/api/community';
 import { ElMessage } from 'element-plus';
 
 // Register ECharts modules
@@ -218,6 +244,8 @@ const dashboardData = ref<DashboardData | null>(null);
 const pendingAudits = ref<ServiceItem[]>([]);
 const pendingEmergencies = ref<EmergencyLog[]>([]);
 const loading = ref(true);
+const communityOptions = ref<Community[]>([]);
+const selectedCommunityId = ref<number | undefined>(undefined);
 
 const hasServiceData = computed(() => {
   if (!dashboardData.value) return false;
@@ -380,10 +408,11 @@ const formatTime = (dateStr: string) => {
 const initData = async () => {
   loading.value = true;
   try {
+    const communityId = selectedCommunityId.value;
     const [statsRes, auditRes, emergencyRes] = await Promise.all([
-      fetchDashboardData(),
-      serviceApi.findAllAdmin({ page: 1, limit: 10, auditStatus: 0 }),
-      fetchEmergencies({ page: 1, limit: 10, status: 0 })
+      fetchDashboardData(communityId),
+      serviceApi.findAllAdmin({ page: 1, limit: 10, auditStatus: 0, communityId }),
+      fetchEmergencies({ page: 1, limit: 10, status: 0, communityId })
     ]);
 
     // Handle nested data if any
@@ -392,8 +421,6 @@ const initData = async () => {
     
     pendingAudits.value = auditRes.items || auditRes.records || [];
     pendingEmergencies.value = emergencyRes.items || [];
-    
-    console.log('Dashboard Data Loaded:', dashboardData.value);
   } catch (error) {
     console.error('Data init failed:', error);
     ElMessage.error('获取系统运营数据概况失败');
@@ -402,7 +429,21 @@ const initData = async () => {
   }
 };
 
+const handleCommunityFilter = () => {
+  initData();
+};
+
+const fetchCommunities = async () => {
+  try {
+    const res: any = await getCommunityList();
+    communityOptions.value = Array.isArray(res) ? res : (res?.data || []);
+  } catch {
+    // Silently fail
+  }
+};
+
 onMounted(() => {
+  fetchCommunities();
   initData();
 });
 </script>
@@ -470,6 +511,27 @@ onMounted(() => {
   display: flex;
   align-items: center;
   border: 1px solid #f1f5f9;
+}
+
+/* Community filter select inside header */
+::v-deep(.community-filter-select .el-select__wrapper) {
+  border-radius: 1rem !important;
+  box-shadow: 0 0 0 1px #e2e8f0 inset !important;
+  background: rgba(248, 250, 252, 0.9) !important;
+  font-weight: 600;
+  color: #475569;
+  height: 48px;
+  transition: all 0.2s;
+}
+
+::v-deep(.community-filter-select .el-select__wrapper:hover) {
+  box-shadow: 0 0 0 1px #cbd5e1 inset !important;
+  background: #ffffff !important;
+}
+
+::v-deep(.community-filter-select .el-select__wrapper.is-focus) {
+  box-shadow: 0 0 0 2px #6366f1 inset !important;
+  background: #ffffff !important;
 }
 
 /* Stat Cards */

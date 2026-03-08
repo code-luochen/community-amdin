@@ -15,6 +15,15 @@ export interface ServiceItem {
     id: number;
     nickname: string;
     realName: string;
+    house?: {
+      buildingNo: string;
+      unitNo?: string;
+      roomNo: string;
+    };
+    community?: {
+      id: number;
+      name: string;
+    };
   };
 }
 
@@ -25,6 +34,7 @@ export interface ServiceQuery {
   type?: number;
   status?: number;
   auditStatus?: number;
+  communityId?: number;
 }
 
 export interface CreateServiceDto {

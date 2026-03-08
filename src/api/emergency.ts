@@ -5,6 +5,7 @@ export interface QueryEmergencyDto {
   status?: number; // 0-待处理 1-处理中 2-已处理
   page?: number;
   limit?: number;
+  communityId?: number;
 }
 
 export interface UpdateEmergencyDto {
@@ -16,7 +17,20 @@ export interface UpdateEmergencyDto {
 export interface EmergencyLog {
   id: number;
   elderlyId: number;
-  elderly?: any;
+  elderly?: {
+    id: number;
+    nickname: string;
+    realName?: string;
+    house?: {
+      buildingNo: string;
+      unitNo?: string;
+      roomNo: string;
+    };
+    community?: {
+      id: number;
+      name: string;
+    };
+  };
   location: string;
   remark: string;
   status: number; // 0-待处理 1-处理中 2-已处理

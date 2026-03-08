@@ -57,7 +57,24 @@
               <el-option label="订单通知" value="order" />
               <el-option label="健康预警" value="health" />
               <el-option label="紧急求助" value="emergency" />
+              <el-option label="服务审核" value="service" />
               <el-option label="系统通知" value="system" />
+            </el-select>
+            <!-- 按小区筛选 -->
+            <el-select
+              v-model="selectedCommunityId"
+              placeholder="所属小区"
+              clearable
+              size="small"
+              style="width: 140px"
+              @change="handleFilterChange"
+            >
+              <el-option
+                v-for="community in communityOptions"
+                :key="community.id"
+                :label="community.name"
+                :value="community.id"
+              />
             </el-select>
           </div>
           <div class="text-sm text-slate-500">共 {{ pagination.total }} 条通知</div>
@@ -116,13 +133,16 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted, computed } from 'vue';
-import { Check, Bell, WarningFilled, ShoppingCart, InfoFilled } from '@element-plus/icons-vue';
+import { useRouter } from 'vue-router';
+import { Check, Bell, WarningFilled, ShoppingCart, InfoFilled, List } from '@element-plus/icons-vue';
 import { ElMessage } from 'element-plus';
 import { fetchNotifications, markAsRead, markAllAsRead, type Notification } from '@/api/notification';
 import { getMyElderlyList, type ElderlyBindingInfo } from '@/api/family-binding';
+import { getCommunityList, type Community } from '@/api/community';
 import { useUserStore } from '@/store/user';
 
 const userStore = useUserStore();
+const router = useRouter();
 
 // State
 const loading = ref(false);
@@ -130,7 +150,9 @@ const tableData = ref<Notification[]>([]);
 const filterStatus = ref('all');
 const filterType = ref<string | undefined>(undefined);
 const selectedElderlyId = ref<number | undefined>(undefined);
+const selectedCommunityId = ref<number | undefined>(undefined);
 const elders = ref<{ id: number; label: string }[]>([]);
+const communityOptions = ref<Community[]>([]);
 const pagination = reactive({
   page: 1,
   limit: 10,
@@ -153,6 +175,7 @@ const getNotificationConfig = (type: string | number) => {
     'order': { label: '订单通知', icon: ShoppingCart, color: 'blue' },
     'health': { label: '健康预警', icon: WarningFilled, color: 'red' },
     'emergency': { label: '紧急求助', icon: Bell, color: 'orange' },
+    'service': { label: '服务审核', icon: List, color: 'indigo' },
     'system': { label: '系统通知', icon: InfoFilled, color: 'purple' }
   };
   return configs[String(type)] || configs['system'];
@@ -171,6 +194,16 @@ const loadElders = async () => {
       }));
   } catch (err) {
     elders.value = [];
+  }
+};
+
+// 加载小区列表
+const loadCommunities = async () => {
+  try {
+    const res: any = await getCommunityList();
+    communityOptions.value = res.data || res || [];
+  } catch (err) {
+    communityOptions.value = [];
   }
 };
 
@@ -198,6 +231,10 @@ const fetchData = async () => {
       params.elderlyId = selectedElderlyId.value;
     }
 
+    if (selectedCommunityId.value) {
+      params.communityId = selectedCommunityId.value;
+    }
+
     if (filterType.value) {
       params.type = filterType.value;
     }
@@ -214,14 +251,29 @@ const fetchData = async () => {
 };
 
 const readNotification = async (item: Notification) => {
-  if (item.isRead) return;
-  try {
-    await markAsRead(item.id);
-    item.isRead = 1;
-    // Dispatch custom event to notify layout header
-    window.dispatchEvent(new Event('unread-count-changed'));
-  } catch (error) {
-    ElMessage.error('标记已读失败');
+  if (!item.isRead) {
+    try {
+      await markAsRead(item.id);
+      item.isRead = 1;
+      // Dispatch custom event to notify layout header
+      window.dispatchEvent(new Event('unread-count-changed'));
+    } catch (error) {
+      ElMessage.error('标记已读失败');
+    }
+  }
+
+  // Navigation logic
+  const role = userStore.role;
+  if (item.type === 'service') {
+    if (role === 4) router.push('/admin/service-audit');
+    else if (role === 3) router.push('/merchant/service');
+  } else if (item.type === 'order') {
+    if (role === 3) router.push('/merchant/order');
+    else if (role === 2) router.push('/family/order');
+  } else if (item.type === 'health') {
+    if (role === 4) router.push('/admin/health-alert');
+  } else if (item.type === 'emergency') {
+    if (role === 4) router.push('/admin/emergency');
   }
 };
 
@@ -242,6 +294,8 @@ onMounted(async () => {
   if (userStore.role === 2) {
     await loadElders();
   }
+  // 加载小区列表
+  await loadCommunities();
   fetchData();
 });
 </script>
@@ -400,6 +454,7 @@ onMounted(async () => {
 .icon-blue { background: #eff6ff; color: #3b82f6; }
 .icon-red { background: #fef2f2; color: #ef4444; }
 .icon-orange { background: #fff7ed; color: #f97316; }
+.icon-indigo { background: #eef2ff; color: #6366f1; }
 .icon-purple { background: #faf5ff; color: #a855f7; }
 
 .item-content {

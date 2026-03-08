@@ -17,6 +17,7 @@ export interface NotificationQuery {
   isRead?: string | number | boolean;
   elderlyId?: number;
   type?: string;
+  communityId?: number;
 }
 
 export const fetchNotifications = (params?: NotificationQuery) => {

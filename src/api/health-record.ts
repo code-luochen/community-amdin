@@ -3,6 +3,13 @@ import request from './request';
 export interface HealthRecord {
   id: number;
   elderlyId: number;
+  elderly?: {
+    id: number;
+    nickname?: string;
+    realName?: string;
+    community?: { name: string };
+    house?: { buildingNo: string; unitNo?: string; roomNo: string };
+  };
   systolicBp: number;
   diastolicBp: number;
   heartRate: number;
@@ -16,6 +23,7 @@ export interface HealthRecord {
 
 export interface QueryHealthRecord {
   elderlyId?: number;
+  communityId?: number;
   isAbnormal?: number;
   page?: number;
   limit?: number;

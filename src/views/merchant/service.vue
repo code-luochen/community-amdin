@@ -84,10 +84,10 @@
               <template #default="{ row }">
                 <div class="service-cell">
                   <el-image 
-                    :src="row.imageUrl || 'https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png'" 
+                    :src="getFullUrl(row.imageUrl) || 'https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png'" 
                     class="service-img"
                     fit="cover"
-                    :preview-src-list="row.imageUrl ? [row.imageUrl] : []"
+                    :preview-src-list="row.imageUrl ? [getFullUrl(row.imageUrl)] : []"
                     preview-teleported
                   />
                   <div class="service-info flex-1 min-w-0">
@@ -206,8 +206,29 @@
           </el-form-item>
         </div>
         
-        <el-form-item label="宣传图片地址" prop="imageUrl">
-          <el-input v-model="formData.imageUrl" placeholder="填写图片的URL访问地址 (选填)" class="custom-input" />
+        <el-form-item label="服务宣传图片" prop="imageUrl">
+          <el-upload
+            class="service-uploader"
+            :action="uploadUrl"
+            :headers="headers"
+            :show-file-list="false"
+            :on-success="handleUploadSuccess"
+            :before-upload="beforeUpload"
+            name="file"
+          >
+            <div v-if="formData.imageUrl" class="uploaded-image-wrapper">
+              <img :src="getFullUrl(formData.imageUrl)" class="service-preview-img" />
+              <div class="upload-overlay">
+                <el-icon><Camera /></el-icon>
+                <span>更换图片</span>
+              </div>
+            </div>
+            <div v-else class="upload-placeholder">
+              <el-icon class="upload-icon"><Plus /></el-icon>
+              <div class="upload-text">点击上传服务图片</div>
+            </div>
+          </el-upload>
+          <div class="upload-tip text-slate-400 text-xs mt-1">支持 jpg/png 格式，大小不超过 2MB (必传)</div>
         </el-form-item>
         
         <el-form-item label="服务详细描述" prop="description">
@@ -240,10 +261,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue';
+import { ref, reactive, onMounted, computed } from 'vue';
 import { serviceApi, type ServiceItem } from '../../api/service';
-import { ElMessage, type FormInstance, type FormRules } from 'element-plus';
-import { Plus, Search, Clock, Warning } from '@element-plus/icons-vue';
+import { ElMessage, type FormInstance, type FormRules, type UploadProps } from 'element-plus';
+import { Plus, Search, Clock, Warning, Camera } from '@element-plus/icons-vue';
+import { useUserStore } from '../../store/user';
+
+const userStore = useUserStore();
 
 // ========== 状态管理 ==========
 const loading = ref(false);
@@ -284,7 +308,53 @@ const formRules = reactive<FormRules>({
   type: [{ required: true, message: '请选择服务类型', trigger: 'change' }],
   price: [{ required: true, message: '请设置服务价格', trigger: 'blur' }],
   description: [{ required: true, message: '请输入服务描述', trigger: 'blur' }],
+  imageUrl: [{ required: true, message: '请上传服务图片', trigger: 'change' }],
 });
+
+// Upload Logic
+const uploadUrl = computed(() => {
+  const base = import.meta.env.VITE_APP_BASE_API || '/api';
+  return `${base}/services/upload`;
+});
+
+const headers = computed(() => ({
+  Authorization: `Bearer ${userStore.token}`,
+}));
+
+const getFullUrl = (path: string) => {
+  if (!path) return '';
+  if (path.startsWith('http')) return path;
+  const apiBaseUrl = import.meta.env.VITE_APP_BASE_API;
+  if (apiBaseUrl && apiBaseUrl.startsWith('http')) {
+    return new URL(apiBaseUrl).origin + path;
+  }
+  return path;
+};
+
+const beforeUpload: UploadProps['beforeUpload'] = (file) => {
+  const isJpgOrPng = file.type === 'image/jpeg' || file.type === 'image/png';
+  if (!isJpgOrPng) {
+    ElMessage.error('图片只能是 JPG/PNG 格式!');
+    return false;
+  }
+  const isLt2M = file.size / 1024 / 1024 < 2;
+  if (!isLt2M) {
+    ElMessage.error('图片大小不能超过 2MB!');
+    return false;
+  }
+  return true;
+};
+
+const handleUploadSuccess: UploadProps['onSuccess'] = (response: any) => {
+  const url = response.data?.url || response.url;
+  if (url) {
+    formData.imageUrl = url;
+    ElMessage.success('图片上传成功');
+    formRef.value?.validateField('imageUrl');
+  } else {
+    ElMessage.error('图片获取失败');
+  }
+};
 
 // ========== 生命周期 ==========
 onMounted(() => {
@@ -827,6 +897,75 @@ const formatDate = (dateString: string) => {
 ::v-deep(.custom-input-number.is-controls-right .el-input__wrapper) {
   padding-left: 1rem;
   padding-right: 3rem;
+}
+
+.uploaded-image-wrapper {
+  position: relative;
+  width: 140px;
+  height: 140px;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
+}
+
+.service-preview-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.upload-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  color: white;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.uploaded-image-wrapper:hover .upload-overlay {
+  opacity: 1;
+}
+
+.upload-placeholder {
+  width: 140px;
+  height: 140px;
+  border: 2px dashed #e2e8f0;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  background-color: #f8fafc;
+  transition: all 0.2s;
+  cursor: pointer;
+}
+
+.upload-placeholder:hover {
+  border-color: #3b82f6;
+  background-color: #f0f7ff;
+}
+
+.upload-icon {
+  font-size: 28px;
+  color: #94a3b8;
+  margin-bottom: 8px;
+}
+
+.upload-text {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.service-uploader :deep(.el-upload) {
+  display: block;
 }
 
 /* Animations */

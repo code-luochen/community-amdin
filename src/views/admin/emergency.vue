@@ -30,6 +30,16 @@
                 <el-option label="已处理" :value="2" />
               </el-select>
             </el-form-item>
+            <el-form-item>
+              <el-select 
+                v-model="searchForm.communityId" 
+                placeholder="所属小区" 
+                clearable 
+                class="custom-select w-48!"
+              >
+                <el-option v-for="c in communityOptions" :key="c.id" :label="c.name" :value="c.id" />
+              </el-select>
+            </el-form-item>
             <el-form-item class="ml-auto! mr-0!">
               <div class="action-buttons">
                 <el-button @click="resetSearch" class="premium-btn secondary px-6 h-10 shadow-none border! border-slate-200! rounded-xl!">重置</el-button>
@@ -59,7 +69,15 @@
                   />
                   <div class="user-info">
                     <div class="username text-slate-800 font-semibold">{{ row.elderly?.nickname || '未知用户' }}</div>
-                    <div class="text-slate-500 text-xs mt-0.5">{{ row.elderly?.username || '-' }}</div>
+                    <div class="text-slate-400 text-xs mt-0.5">
+                      <template v-if="row.elderly?.community">
+                        {{ row.elderly.community.name }}
+                        <template v-if="row.elderly.house">
+                          - {{ row.elderly.house.buildingNo }}栋{{ row.elderly.house.unitNo ? row.elderly.house.unitNo + '单元' : '' }}{{ row.elderly.house.roomNo }}
+                        </template>
+                      </template>
+                      <template v-else>ID: {{ row.elderlyId }}</template>
+                    </div>
                   </div>
                 </div>
               </template>
@@ -238,6 +256,7 @@ import { ElMessage } from 'element-plus';
 import type { FormInstance, FormRules } from 'element-plus';
 import { fetchEmergencies, handleEmergency, type EmergencyLog } from '@/api/emergency';
 import { fetchUsers, type User } from '@/api/users';
+import { getCommunityList, type Community } from '@/api/community';
 import { useUserStore } from '@/store/user';
 
 const userStore = useUserStore();
@@ -254,7 +273,10 @@ const pagination = reactive({
 
 const searchForm = reactive({
   status: undefined as number | undefined,
+  communityId: undefined as number | undefined,
 });
+
+const communityOptions = ref<Community[]>([]);
 
 // Process dialog state
 const dialogVisible = ref(false);
@@ -320,6 +342,7 @@ const fetchData = async () => {
       page: pagination.page,
       limit: pagination.limit,
       status: searchForm.status,
+      communityId: searchForm.communityId,
     });
     const result = res.data || res;
     tableData.value = result.items || [];
@@ -338,8 +361,19 @@ const handleSearch = () => {
 
 const resetSearch = () => {
   searchForm.status = undefined;
+  searchForm.communityId = undefined;
   handleSearch();
 };
+
+const fetchInitialData = async () => {
+  try {
+    const res = await getCommunityList();
+    // @ts-ignore
+    communityOptions.value = res.data || res;
+  } catch (err) {
+    console.error('Fetch community error:', err);
+  }
+}
 
 const openProcessDialog = (row: EmergencyLog, type: 1 | 2) => {
   currentRow.value = row;
@@ -394,6 +428,7 @@ const submitForm = async () => {
 };
 
 onMounted(() => {
+  fetchInitialData();
   fetchData();
 });
 </script>

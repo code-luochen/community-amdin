@@ -13,14 +13,28 @@
             </h1>
             <p class="page-subtitle">实时监控用户的健康异常数据并进行预警处理</p>
           </div>
-          <div class="flex items-center gap-3">
-            <button class="premium-btn secondary px-6 h-10 shadow-none border border-slate-200 rounded-xl" @click="loadRecords">
-              刷新
-            </button>
-            <button class="premium-btn primary-solid group flex items-center gap-2" @click="exportData">
-              <el-icon class="group-hover:-translate-y-0.5 transition-transform"><Download /></el-icon>
-              <span>导出预警报表</span>
-            </button>
+          <div class="flex items-center gap-4">
+            <div class="search-area flex items-center gap-3">
+              <el-select 
+                v-model="query.communityId" 
+                placeholder="按小区筛选" 
+                clearable 
+                class="w-48!"
+                @change="handleSearch"
+              >
+                <el-option v-for="c in communityOptions" :key="c.id" :label="c.name" :value="c.id" />
+              </el-select>
+            </div>
+            <div class="h-8 w-px bg-slate-200 hidden sm:block mx-1"></div>
+            <div class="flex items-center gap-3">
+              <button class="premium-btn secondary px-6 h-10 shadow-none border border-slate-200 rounded-xl" @click="handleSearch">
+                刷新
+              </button>
+              <button class="premium-btn primary-solid group flex items-center gap-2" @click="exportData">
+                <el-icon class="group-hover:-translate-y-0.5 transition-transform"><Download /></el-icon>
+                <span>导出预警报表</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -71,15 +85,32 @@
             style="width: 100%"
             row-class-name="hover:bg-red-50/30 transition-colors"
           >
-            <el-table-column label="老人信息" min-width="140">
+            <el-table-column label="老人姓名" min-width="120">
               <template #default="{ row }">
                 <div class="user-cell">
-                  <el-avatar :size="36" class="user-avatar bg-blue-50 text-blue-600 font-semibold">
-                    {{ row.elderlyId }}
+                  <el-avatar :size="32" class="user-avatar bg-blue-50 text-blue-600 font-semibold shrink-0">
+                    {{ (row.elderly?.nickname || row.elderly?.realName || '未').toString()[0] }}
                   </el-avatar>
                   <div class="user-info">
-                    <div class="username text-slate-800 font-semibold">ID: {{ row.elderlyId }}</div>
+                    <div class="username text-slate-800 font-semibold">{{ row.elderly?.nickname || row.elderly?.realName || '未知用户' }}</div>
+                    <div class="text-slate-400 text-[11px]">ID: {{ row.elderlyId }}</div>
                   </div>
+                </div>
+              </template>
+            </el-table-column>
+
+            <el-table-column label="居住地址" min-width="180" show-overflow-tooltip>
+              <template #default="{ row }">
+                <div class="text-slate-600 text-sm">
+                  <template v-if="row.elderly?.community">
+                    <span class="font-medium text-slate-700">{{ row.elderly.community.name }}</span>
+                    <div v-if="row.elderly.house" class="text-xs text-slate-400 mt-0.5">
+                      {{ row.elderly.house.buildingNo }}栋{{ row.elderly.house.unitNo ? row.elderly.house.unitNo + '单元' : '' }}{{ row.elderly.house.roomNo }}
+                    </div>
+                  </template>
+                  <template v-else>
+                    <span class="text-slate-300 italic">未绑定地址</span>
+                  </template>
                 </div>
               </template>
             </el-table-column>
@@ -114,8 +145,8 @@
             
             <el-table-column label="异常类型" min-width="140">
               <template #default="{ row }">
-                <el-tag type="danger" effect="plain" class="border-red-200! uppercase font-bold tracking-wide text-xs">
-                  {{ row.abnormalType || 'UNKNOWN' }}
+                <el-tag type="danger" effect="plain" class="border-red-200! font-bold tracking-wide text-xs">
+                  {{ translateAbnormalType(row.abnormalType) }}
                 </el-tag>
               </template>
             </el-table-column>
@@ -159,38 +190,51 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
-import { fetchHealthRecords, HealthRecord } from '@/api/health-record';
+import { fetchHealthRecords, type HealthRecord, type QueryHealthRecord } from '@/api/health-record';
+import { getCommunityList, type Community } from '@/api/community';
 import { ElMessage } from 'element-plus';
 import { Clock, Warning, Download, CircleCheckFilled } from '@element-plus/icons-vue';
 
 const loading = ref(false);
 const records = ref<HealthRecord[]>([]);
 const total = ref(0);
-const query = ref({
+const communityOptions = ref<Community[]>([]);
+
+const query = ref<QueryHealthRecord>({
   page: 1,
   limit: 10,
-  isAbnormal: 1 // 管理员端仅显示异常数据
+  isAbnormal: 1, // 管理员端仅显示异常数据
+  communityId: undefined
 });
 
 const loadRecords = async () => {
   loading.value = true;
   try {
     const res = await fetchHealthRecords(query.value);
-
-    if (res && res.data) {
-      records.value = res.data;
-      total.value = res.total;
-    } else {
-      // @ts-ignore
-      records.value = res.items || res.list || [];
-      // @ts-ignore
-      total.value = res.total || 0;
-    }
+    // Explicitly handle nested or flat result structures
+    const result: any = (res as any).data || res;
+    records.value = result.items || result.data || (Array.isArray(result) ? result : []);
+    total.value = result.total || 0;
   } catch (err) {
     ElMessage.error('获取异常健康记录失败');
   } finally {
     loading.value = false;
   }
+};
+
+const fetchInitialData = async () => {
+  try {
+    const res = await getCommunityList();
+    // @ts-ignore
+    communityOptions.value = res.data || res;
+  } catch (err) {
+    console.error('Fetch community error:', err);
+  }
+}
+
+const handleSearch = () => {
+  query.value.page = 1;
+  loadRecords();
 };
 
 const handleCurrentChange = (val: number) => {
@@ -204,12 +248,30 @@ const formatDate = (dateStr: string) => {
   return date.toLocaleString();
 };
 
+const translateAbnormalType = (type: string) => {
+  if (!type) return '未知异常';
+  
+  const map: Record<string, string> = {
+    'hypertension': '高血压',
+    'hypotension': '低血压',
+    'tachycardia': '心动过速',
+    'bradycardia': '心动过缓',
+    'hyperglycemia': '高血糖',
+    'hypoglycemia': '低血糖',
+    'fever': '发烧/体温过高',
+  };
+
+  // Handle multiple types comma separated
+  return type.split(',').map(t => map[t.trim()] || t).join('、');
+};
+
 const exportData = () => {
   ElMessage.success('报表导出任务已提交');
   // 仅前端模拟导出行为，因为基于当前PRD还未开发真实后端导出逻辑
 };
 
 onMounted(() => {
+  fetchInitialData();
   loadRecords();
 });
 </script>

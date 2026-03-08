@@ -85,9 +85,18 @@
               </template>
             </el-table-column>
 
-            <el-table-column label="居住地址" min-width="200">
+            <el-table-column label="居住/入驻地址" min-width="200">
               <template #default="{ row }">
-                <div v-if="row.profile?.house" class="text-xs">
+                <!-- Direct user address (for Merchants/Admins or recently updated) -->
+                <div v-if="row.community" class="text-xs">
+                  <div class="text-slate-700 font-semibold">{{ row.community.name }}</div>
+                  <div class="text-slate-400 mt-0.5" v-if="row.house">
+                     {{ row.house.buildingNo }} - {{ row.house.unitNo || '' }} - {{ row.house.roomNo }}
+                  </div>
+                  <div v-else class="text-slate-400 mt-0.5 italics">（仅绑定小区）</div>
+                </div>
+                <!-- Legacy profile-based address (for existing Elderly users) -->
+                <div v-else-if="row.profile?.house" class="text-xs">
                   <div class="text-slate-700 font-semibold">{{ row.profile.house.community?.name }}</div>
                   <div class="text-slate-400 mt-0.5">
                     {{ row.profile.house.buildingNo }} - {{ row.profile.house.unitNo || '' }} - {{ row.profile.house.roomNo }}
@@ -210,14 +219,14 @@
           <el-input v-model="formData.realName" placeholder="用户的真实身份姓名" class="custom-input" />
         </el-form-item>
 
-        <div class="grid grid-cols-2 gap-4" v-if="!isEdit">
+        <div class="grid grid-cols-2 gap-4">
           <el-form-item label="所属小区" prop="communityId">
             <el-select v-model="formData.communityId" placeholder="选择小区" class="custom-select w-full" @change="handleCommunityChange">
               <el-option v-for="opt in communityOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
             </el-select>
           </el-form-item>
 
-          <el-form-item label="房产地址" prop="houseId">
+          <el-form-item label="房产地址" prop="houseId" v-if="formData.role !== 3">
             <el-cascader
               v-model="formData.houseId"
               :options="currentAddressOptions"
@@ -305,11 +314,25 @@ const formRules = reactive<FormRules>({
   password: [
     { required: true, message: '请输入密码', trigger: 'blur' },
     { min: 6, max: 16, message: '长度在6到16字符之间', trigger: 'blur' }
-  ],
+  ].map(r => ({ ...r, required: !isEdit.value })),
   role: [{ required: true, message: '请选择角色', trigger: 'change' }],
   nickname: [{ required: true, message: '请输入昵称', trigger: 'blur' }],
   communityId: [{ required: true, message: '请选择所属小区', trigger: 'change' }],
-  houseId: [{ required: true, message: '请选择详细地址', trigger: 'change' }],
+  houseId: [
+    { 
+      validator: (_: any, value: any, callback: any) => {
+        // Only skip validation for roles that don't need a house address (e.g. Merchants)
+        if (formData.role === 3) {
+          callback();
+        } else if (!value || value.length === 0) {
+          callback(new Error('请选择详细地址'));
+        } else {
+          callback();
+        }
+      }, 
+      trigger: 'change' 
+    }
+  ],
 });
 
 // Helper functions
@@ -365,8 +388,10 @@ const resetSearch = () => {
   handleSearch();
 };
 
-const openDialog = (row?: User) => {
+const openDialog = async (row?: any) => {
   isEdit.value = !!row;
+  await fetchAddressTree(); // Ensure we have the tree for both modes
+  
   if (row) {
     currentUserId.value = row.id;
     formData.username = row.username;
@@ -374,6 +399,33 @@ const openDialog = (row?: User) => {
     formData.nickname = row.nickname;
     formData.realName = row.realName || '';
     formData.password = '';
+    
+    // Populate address info: Prefer direct user relations, fallback to profile
+    if (row.community) {
+      formData.communityId = Number(row.community.id);
+      handleCommunityChange(formData.communityId);
+      if (row.house) {
+        formData.houseId = [
+          row.house.buildingNo,
+          row.house.unitNo || '__none__',
+          row.house.id
+        ];
+      } else {
+        formData.houseId = [];
+      }
+    } else if (row.profile?.house) {
+      formData.communityId = Number(row.profile.house.communityId);
+      handleCommunityChange(formData.communityId);
+      formData.houseId = [
+        row.profile.house.buildingNo,
+        row.profile.house.unitNo || '__none__',
+        row.profile.house.id
+      ];
+    } else {
+      formData.communityId = undefined;
+      formData.houseId = [];
+      currentAddressOptions.value = [];
+    }
   } else {
     currentUserId.value = null;
     formData.username = '';
@@ -385,7 +437,7 @@ const openDialog = (row?: User) => {
     formData.houseId = [];
     currentAddressOptions.value = [];
   }
-  fetchAddressTree();
+  
   dialogVisible.value = true;
   setTimeout(() => {
     formRef.value?.clearValidate();
@@ -399,13 +451,16 @@ const submitForm = async () => {
       submitLoading.value = true;
       try {
         if (isEdit.value && currentUserId.value) {
+          const houseId = formData.houseId.length > 0 ? formData.houseId[formData.houseId.length - 1] : undefined;
           await updateUser(currentUserId.value, {
             nickname: formData.nickname,
-            realName: formData.realName
+            realName: formData.realName,
+            communityId: formData.communityId,
+            houseId: houseId
           });
           ElMessage.success('用户资料已成功更新');
         } else {
-          const houseId = formData.houseId[formData.houseId.length - 1]; // houseId is the last level
+          const houseId = formData.houseId.length > 0 ? formData.houseId[formData.houseId.length - 1] : undefined;
 
           await createUser({
             ...formData,
@@ -449,10 +504,13 @@ const fetchAddressTree = async () => {
   try {
     const res: any = await getAddressTree();
     const rawData = Array.isArray(res) ? res : (res.data || []);
-    allAddressData.value = rawData;
+    allAddressData.value = rawData.map((node: any) => ({
+      ...node,
+      communityId: Number(node.communityId) // Normalize
+    }));
     
     // Transform to Community options
-    communityOptions.value = rawData.map((node: any) => ({
+    communityOptions.value = allAddressData.value.map((node: any) => ({
       label: node.communityName,
       value: node.communityId
     }));
@@ -461,9 +519,10 @@ const fetchAddressTree = async () => {
   }
 };
 
-const handleCommunityChange = (val: number) => {
+const handleCommunityChange = (val: any) => {
   formData.houseId = [];
-  const node = allAddressData.value.find(n => n.communityId === val);
+  const normalizedVal = Number(val);
+  const node = allAddressData.value.find(n => Number(n.communityId) === normalizedVal);
   if (node) {
     currentAddressOptions.value = node.buildings.map((b: any) => ({
       label: b.buildingNo,
