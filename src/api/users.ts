@@ -21,6 +21,8 @@ export interface User {
   updatedAt: string;
   communityId?: number;
   houseId?: number;
+  familyBindings?: any[];
+  elderlyBindings?: any[];
 }
 
 export interface UserListResult {

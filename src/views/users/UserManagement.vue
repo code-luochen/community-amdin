@@ -114,6 +114,45 @@
                 </div>
               </template>
             </el-table-column>
+
+            <el-table-column label="绑定关系" min-width="160">
+              <template #default="{ row }">
+                <div v-if="row.role === 1 || row.role === 2" class="bindings-cell">
+                  <!-- 老年人: 展示其绑定的家属 -->
+                  <template v-if="row.role === 1 && row.elderlyBindings?.length">
+                    <el-tag
+                      v-for="binding in row.elderlyBindings"
+                      :key="binding.id"
+                      size="small"
+                      class="mr-1 mb-1"
+                      type="success"
+                      effect="light"
+                    >
+                      <span v-if="binding.family">{{ binding.family.realName || binding.family.nickname }}</span>
+                      <span class="text-xs text-green-600">({{ binding.relation || '家属' }})</span>
+                    </el-tag>
+                  </template>
+                  
+                  <!-- 家属: 展示其绑定的老年人 -->
+                  <template v-else-if="row.role === 2 && row.familyBindings?.length">
+                    <el-tag
+                      v-for="binding in row.familyBindings"
+                      :key="binding.id"
+                      size="small"
+                      class="mr-1 mb-1"
+                      type="warning"
+                      effect="light"
+                    >
+                      <span v-if="binding.elderly">{{ binding.elderly.realName || binding.elderly.nickname }}</span>
+                      <span class="text-xs text-yellow-600">({{ binding.relation || '长辈' }})</span>
+                    </el-tag>
+                  </template>
+
+                  <span v-else class="text-slate-300 text-xs">-</span>
+                </div>
+                <span v-else class="text-slate-300">-</span>
+              </template>
+            </el-table-column>
             
             <el-table-column label="状态" width="100">
               <template #default="{ row }">
