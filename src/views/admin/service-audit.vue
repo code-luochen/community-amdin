@@ -174,7 +174,7 @@
                   </el-popconfirm>
                 </div>
                 <div v-else>
-                  <span class="text-slate-400 text-xs font-semibold mr-2 border border-slate-200 px-3 py-1 rounded-full"><el-icon class="mr-1"><Check v-if="row.auditStatus === 1" /><Close v-else /></el-icon>审核完毕</span>
+                  <span class="text-slate-400 text-xs font-semibold mr-2 border border-slate-200 px-3 py-0.5 rounded-full"><el-icon class="mr-1"><Check v-if="row.auditStatus === 1" /><Close v-else /></el-icon>审核完毕</span>
                 </div>
               </template>
             </el-table-column>
