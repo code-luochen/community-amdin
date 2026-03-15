@@ -85,6 +85,12 @@
               </template>
             </el-table-column>
 
+            <el-table-column prop="phone" label="联系电话" min-width="130">
+              <template #default="{ row }">
+                <span class="text-slate-600">{{ row.phone || '-' }}</span>
+              </template>
+            </el-table-column>
+
             <el-table-column label="居住/入驻地址" min-width="200">
               <template #default="{ row }">
                 <!-- Direct user address (for Merchants/Admins or recently updated) -->
@@ -129,7 +135,7 @@
                       effect="light"
                     >
                       <span v-if="binding.family">{{ binding.family.realName || binding.family.nickname }}</span>
-                      <span class="text-xs text-green-600">({{ binding.relation || '家属' }})</span>
+                      <span class="text-xs text-green-600">({{ getDisplayRelation(binding.relation, true) }})</span>
                     </el-tag>
                   </template>
                   
@@ -144,7 +150,7 @@
                       effect="light"
                     >
                       <span v-if="binding.elderly">{{ binding.elderly.realName || binding.elderly.nickname }}</span>
-                      <span class="text-xs text-yellow-600">({{ binding.relation || '长辈' }})</span>
+                      <span class="text-xs text-yellow-600">({{ getDisplayRelation(binding.relation, false) }})</span>
                     </el-tag>
                   </template>
 
@@ -254,9 +260,15 @@
           </el-form-item>
         </div>
         
-        <el-form-item label="真实姓名 (选填)" prop="realName">
-          <el-input v-model="formData.realName" placeholder="用户的真实身份姓名" class="custom-input" />
-        </el-form-item>
+        <div class="grid grid-cols-2 gap-4">
+          <el-form-item label="真实姓名 (选填)" prop="realName">
+            <el-input v-model="formData.realName" placeholder="用户的真实身份姓名" class="custom-input" />
+          </el-form-item>
+
+          <el-form-item label="联系电话" prop="phone">
+            <el-input v-model="formData.phone" placeholder="11位手机号码" class="custom-input" />
+          </el-form-item>
+        </div>
 
         <div class="grid grid-cols-2 gap-4">
           <el-form-item label="所属小区" prop="communityId">
@@ -337,6 +349,7 @@ const formData = reactive({
   role: undefined as number | undefined,
   nickname: '',
   realName: '',
+  phone: '',
   communityId: undefined as number | undefined,
   houseId: [] as any[], // [buildingNo, unitNo, houseId]
 });
@@ -356,6 +369,10 @@ const formRules = reactive<FormRules>({
   ].map(r => ({ ...r, required: !isEdit.value })),
   role: [{ required: true, message: '请选择角色', trigger: 'change' }],
   nickname: [{ required: true, message: '请输入昵称', trigger: 'blur' }],
+  phone: [
+    { required: true, message: '请输入联系电话', trigger: 'blur' },
+    { pattern: /^1[3-9]\d{9}$/, message: '请输入正确的11位手机号码', trigger: 'blur' }
+  ],
   communityId: [{ required: true, message: '请选择所属小区', trigger: 'change' }],
   houseId: [
     { 
@@ -388,6 +405,50 @@ const getRoleBadgeClass = (role: number) => {
     4: 'badge-admin' 
   };
   return map[role] || 'badge-default';
+};
+
+/**
+ * 获取对应显示的关系名称 (自动映射对称关系)
+ * @param relation 原始记录的关系
+ * @param isElderlyPerspective 是否从老人的视角查看（若是，则需要转换成"子女"等对称关系）
+ */
+const getDisplayRelation = (relation: string, isElderlyPerspective: boolean) => {
+  if (!relation) return isElderlyPerspective ? '家属' : '长辈';
+  // 如果不是老人视角，说明家属在看老人，直接显示原始定义的"父亲/母亲"等
+  if (!isElderlyPerspective) return relation;
+
+  // 如果是老人视角看家属，需要将"父亲"转换成"子女"
+  const inverseMap: Record<string, string> = {
+    '父亲': '子女',
+    '爸爸': '子女',
+    '母亲': '子女',
+    '妈妈': '子女',
+    '爷爷': '孙辈',
+    '外公': '孙辈',
+    '奶奶': '孙辈',
+    '外婆': '孙辈',
+    '伯父': '侄辈',
+    '伯母': '侄辈',
+    '叔叔': '侄辈',
+    '婶婶': '侄辈',
+    '姑姑': '侄辈',
+    '姑丈': '侄辈',
+    '舅舅': '侄辈',
+    '舅妈': '侄辈',
+    '阿姨': '侄辈',
+    '姨丈': '侄辈',
+    '岳父': '女婿/儿媳',
+    '公公': '儿媳/女婿',
+    '岳母': '女婿/儿媳',
+    '婆婆': '儿媳/女婿',
+  };
+
+  // 模糊匹配
+  for (const key in inverseMap) {
+    if (relation.includes(key)) return inverseMap[key];
+  }
+
+  return '晚辈';
 };
 
 const formatDate = (dateString: string) => {
@@ -437,6 +498,7 @@ const openDialog = async (row?: any) => {
     formData.role = row.role;
     formData.nickname = row.nickname;
     formData.realName = row.realName || '';
+    formData.phone = row.phone || '';
     formData.password = '';
     
     // Populate address info: Prefer direct user relations, fallback to profile
@@ -472,6 +534,7 @@ const openDialog = async (row?: any) => {
     formData.role = undefined;
     formData.nickname = '';
     formData.realName = '';
+    formData.phone = '';
     formData.communityId = undefined;
     formData.houseId = [];
     currentAddressOptions.value = [];
@@ -494,6 +557,7 @@ const submitForm = async () => {
           await updateUser(currentUserId.value, {
             nickname: formData.nickname,
             realName: formData.realName,
+            phone: formData.phone,
             communityId: formData.communityId,
             houseId: houseId
           });

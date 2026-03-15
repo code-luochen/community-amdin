@@ -124,6 +124,9 @@
         </el-form-item>
         <el-form-item label="家属关系 (选填)" prop="relation">
           <el-input v-model="bindForm.relation" placeholder="例如: 父亲、母亲、岳父、岳母" class="custom-input" />
+          <div class="text-xs text-slate-400 mt-1.5 px-1 animate-fade-in" v-if="bindForm.relation">
+            💡 老人端将看到您的身份为: <span class="font-semibold text-primary/80">{{ getInverseRelation(bindForm.relation) }}</span>
+          </div>
         </el-form-item>
       </el-form>
       
@@ -177,6 +180,37 @@ const formatDate = (dateStr: string) => {
   if (!dateStr) return '-';
   const d = new Date(dateStr);
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+};
+
+/**
+ * 获取对称关系描述
+ */
+const getInverseRelation = (relation: string) => {
+  if (!relation) return '家属';
+  const inverseMap: Record<string, string> = {
+    '父亲': '子女',
+    '爸爸': '子女',
+    '母亲': '子女',
+    '妈妈': '子女',
+    '爷爷': '孙辈',
+    '外公': '孙辈',
+    '奶奶': '孙辈',
+    '外婆': '孙辈',
+    '伯父': '侄辈',
+    '叔叔': '侄辈',
+    '姑姑': '侄辈',
+    '舅舅': '侄辈',
+    '阿姨': '侄辈',
+    '岳父': '女婿/儿媳',
+    '公公': '儿媳/女婿',
+    '岳母': '女婿/儿媳',
+    '婆婆': '儿媳/女婿',
+  };
+
+  for (const key in inverseMap) {
+    if (relation.includes(key)) return inverseMap[key];
+  }
+  return '晚辈';
 };
 
 const fetchList = async () => {

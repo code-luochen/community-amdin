@@ -60,6 +60,10 @@
           <el-form-item label="真实姓名" prop="realName">
             <el-input v-model="profileForm.realName" placeholder="请输入你的真实姓名" clearable />
           </el-form-item>
+          
+          <el-form-item label="联系电话" prop="phone">
+            <el-input v-model="profileForm.phone" placeholder="请输入你的 11 位手机号码" clearable />
+          </el-form-item>
 
           <el-form-item label="注册时间" prop="createdAt">
             <el-input :model-value="formatDate(profileForm.createdAt)" disabled />
@@ -108,6 +112,7 @@ const profileForm = reactive({
   username: '',
   nickname: '',
   realName: '',
+  phone: '',
   avatar: '',
   createdAt: '',
 });
@@ -116,6 +121,10 @@ const rules = reactive<FormRules>({
   nickname: [
     { required: true, message: '昵称不能为空', trigger: 'blur' },
     { min: 2, max: 20, message: '长度在 2 到 20 个字符', trigger: 'blur' },
+  ],
+  phone: [
+    { required: true, message: '联系电话不能为空', trigger: 'blur' },
+    { pattern: /^1[3-9]\d{9}$/, message: '请输入正确的11位手机号码', trigger: 'blur' }
   ],
 });
 
@@ -204,6 +213,7 @@ const saveProfile = async () => {
         await updateProfile({
           nickname: profileForm.nickname,
           realName: profileForm.realName,
+          phone: profileForm.phone,
           // 如果有新上传但还没保存的头像，也一并提交
           ...(tempAvatar.value ? { avatar: tempAvatar.value } : {}),
         });

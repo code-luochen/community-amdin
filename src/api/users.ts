@@ -13,6 +13,7 @@ export interface User {
   username: string;
   nickname: string;
   realName?: string;
+  phone?: string;
   role: number;
   status: number;
   lastLoginAt?: string;
